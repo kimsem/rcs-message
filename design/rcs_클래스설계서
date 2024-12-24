@@ -1,0 +1,444 @@
+!theme mono
+
+title RCS 포털 - 클래스 다이어그램
+
+' Common Layer
+package "common" {
+    interface MessageEventPublisher {
+        +publishUploadEvent(event: RecipientUploadEvent): void
+        +publishSendEvent(event: MessageSendEvent): void
+        +publishResultEvent(event: MessageResultEvent): void
+    }
+    
+    interface MessageEventSubscriber {
+        +subscribeToUploadEvents(): void
+        +subscribeToSendEvents(): void
+        +subscribeToResultEvents(): void
+    }
+    abstract class Event {
+        -eventId: String
+        -timestamp: LocalDateTime
+        -eventType: EventType
+    }
+    class RecipientUploadEvent extends Event {
+        -messageGroupId: String
+        -fileName: String
+        -totalCount: int
+    }
+    class MessageSendEvent extends Event{
+        -messageId: String
+        -messageGroupId: String
+        -brandId: String
+        -content: String
+    }
+    class MessageResultEvent extends Event{
+        -messageId: String
+        -messageGroupId: String
+        -status: MessageStatus
+        -resultCode: String
+        -resultMessage: String
+    }
+
+    enum EventType {
+        RECIPIENT_UPLOAD
+        MESSAGE_SEND
+        MESSAGE_RESULT
+    }
+
+    class ApiResponse<T>{
+        -status: Integer
+        -message: String
+        -data: T
+        -timestamp: LocalDateTime
+        +success(data: T): ApiResponse<T>
+        +error(status: Integer, message: String): ApiResponse<T>
+    }
+
+    class PageResponse<T> {
+        -content: List<T>
+        -totalElements: long
+        -totalPages: int
+        -pageNumber: int
+        -pageSize: int
+    }
+
+    class SearchCriteria{
+        -startDate: LocalDateTime
+        -endDate: LocalDateTime
+        -brandId: String
+        -chatbotId: String
+        -messageGroupId: String
+        -status: MessageStatus
+    }
+
+}
+
+' Auth Domain
+package "auth" {
+    package "auth.controller" {
+        class AuthController {
+            -authService: AuthService
+            +login(request: LoginRequest): ApiResponse<LoginResponse>
+            +verifyToken(token: String): ApiResponse<TokenVerifyResponse>
+        }
+    }
+    package "auth.service" {
+        interface AuthService {
+            +login(request: LoginRequest): LoginResponse
+            +verifyToken(token: String): TokenVerifyResponse
+        }       
+        class AuthServiceImpl {
+            -jwtTokenProvider: JwtTokenProvider
+            -userRepository: UserRepository
+        }
+        class JwtTokenProvider {
+            -secretKey: String
+            -tokenValidityInMinutes: long
+            +createToken(userId: String, roles: List<String>): String
+        }
+    }
+    package "auth.domain" {
+        class User {
+            -userId: String
+            -password: String
+        }
+    }
+    package "auth.repository" {
+        interface UserRepository {
+            +findByUserId(userId: String): Optional<User>
+        }
+    }
+    package "auth.dto" {
+        class LoginRequest{
+        -masterId: String
+        -userId: String
+        -password: String
+		}
+        class LoginResponse{
+        -accessToken: String
+        -refreshToken: String
+		}
+        class TokenVerifyResponse{
+        -isValid: boolean
+        -userId: String
+		}
+    }
+}
+
+' Base Data Domain
+package "basedata" {
+    package "basedata.controller" {
+        class BaseDataController {
+            -baseDataService: BaseDataService
+            +getBrands(masterId: String): ApiResponse<List<BrandResponse>>
+            +getTemplates(brandId: String): ApiResponse<List<TemplateResponse>>
+            +getChatbots(brandId: String): ApiResponse<List<ChatbotResponse>>
+        }
+    }
+
+    package "basedata.service" {
+        interface BaseDataService {
+			+getBrands(masterId: String): List<BrandResponse>
+			+getTemplates(brandId: String): List<TemplateResponse> 
+			+getChatbots(brandId: String): List<ChatbotResponse>
+		}
+
+        class BaseDataServiceImpl{
+			-brandRepository: BrandRepository
+			-templateRepository: TemplateRepository
+			-chatbotRepository: ChatbotRepository
+		}
+
+    }
+
+    package "basedata.domain" {
+        class Brand{
+			-brandId: String
+			-masterId: String
+			-brandName: String
+			-status: String
+		}
+        class Template{
+			-templateId: String
+			-brandId: String
+			-templateName: String
+			-content: String
+			-status: String
+		}
+        class Chatbot {
+			-chatbotId: String
+			-brandId: String
+			-phoneNumber: String
+			-status: String
+		}
+    }
+
+    package "basedata.repository" {
+        interface BrandRepository
+        interface TemplateRepository
+        interface ChatbotRepository
+    }
+
+    package "basedata.dto" {
+        class BrandResponse
+        class TemplateResponse
+        class ChatbotResponse
+    }
+}
+
+' Message Domain
+package "message" {
+    package "message.controller" {
+        class SendMessageController {
+            -sendMessageService: SendMessageService
+            -recipientService: RecipientService
+            +sendMessage(request: MessageSendRequest): ApiResponse<MessageSendResponse>
+        }
+    }
+
+    package "message.service" {
+        interface SendMessageService
+        class SendMessageServiceImpl
+    }
+
+    package "message.domain" {
+        class Message {
+            -messageId: String
+            -messageGroupId: String
+	-masterId: String
+            -brandId: String
+            -content: String
+            -status: MessageStatus
+            -createDateTime: LocalDateTime
+        }
+
+        enum MessageStatus {
+            PENDING
+            SENDING
+            SENT
+            FAILED
+        }
+    }
+
+    package "message.repository" {
+        interface MessageRepository {
+            +save(message: Message): Message
+            +findByMessageGroupId(messageGroupId: String): List<Message>
+            +updateStatus(messageId: String, status: MessageStatus): void
+            +deleteByMessageId(messageId: String): void
+        }
+    }
+
+    package "message.dto" {
+        class MessageSendRequest{
+			-brandId: String
+			-templateId: String
+			-chatbotId: String
+			-messageGroupId: String 
+			-body: String
+			-userContact: String
+		}
+        class MessageSendResponse {
+			-messageGroupId: String
+			-status: String
+		}
+    }
+
+    package "message.recipient" {
+        package "service" {
+            interface RecipientService {
+				+uploadRecipients(file: MultipartFile): RecipientUploadResponse
+				+getUploadStatus(messageGroupId: String): UploadProgressResponse
+				+searchRecipients(request: RecipientSearchRequest): PageResponse<RecipientResponse>
+			}
+            class RecipientServiceImpl{
+				-recipientPublisher: EventPublisher
+				-recipientRepository: RecipientRepository
+				-encryptService: EncryptService
+			}
+            class RecipientFileProcessor
+        }
+
+        package "domain" {
+            class Recipient {
+				-recipientId: String
+				-messageGroupId: String
+				-phoneNumber: String
+				-encryptedPhoneNumber: String
+				-status: ProcessingStatus
+				-createDateTime: LocalDateTime
+				-updateDateTime: LocalDateTime
+			}
+
+            enum ProcessingStatus {
+				UPLOADING
+				PROCESSING
+				COMPLETED
+				FAILED
+			}
+
+        }
+
+        package "repository" {
+            interface RecipientRepository
+        }
+
+        package "dto" {
+            class RecipientUploadResponse{
+				-messageGroupId: String
+				-status: boolean
+			}
+            class UploadProgressResponse {
+				-processedCount: int
+				-successCount: int
+				-failCount: int
+				-totalCount: int
+				-status: String
+			}
+            class RecipientInfo {
+				-phoneNumber: String
+				-name: String
+				-status: ProcessingStatus
+			}
+        }
+    }
+}
+
+' History Domain
+package "history" {
+    package "history.controller" {
+        class HistoryController {
+			-historyService: HistoryService
+			+searchMessages(request: MessageHistorySearchRequest): ApiResponse<PageResponse<MessageHistoryResponse>>
+		}
+    }
+
+    package "history.service" {
+        interface HistoryService {
+			+searchMessages(request: MessageHistorySearchRequest): PageResponse<MessageHistoryResponse>
+		}
+        class HistoryServiceImpl {
+			-historyRepository: HistoryRepository
+			-eventSubscriber: EventSubscriber
+		}
+    }
+
+    package "history.domain" {
+        class MessageHistory {
+			-historyId: String
+			-masterId: String
+			-messageId: String
+			-messageGroupId: String
+			-brandId: String
+			-templateId: String
+			-chatbotId: String
+			-content: String
+			-status: MessageStatus
+			-resultCode: String
+			-resultMessage: String
+			-createDateTime: LocalDateTime
+			-statusUpdateDateTime: LocalDateTime
+		}
+
+    }
+
+    package "history.repository" {
+        interface HistoryRepository {
+			+save(history: MessageHistoryEntity): MessageHistoryEntity
+			+findBySearchCriteria(criteria: SearchCriteria, pageable: Pageable): Page<MessageHistoryEntity>
+			+updateStatus(messageId: String, status: MessageStatus, resultCode: String, resultMessage: String): void
+		}
+
+    }
+
+    package "history.dto" {
+        class MessageHistorySearchRequest {
+			-startDate: String
+			-endDate: String
+			-brandId: String
+			-chatbotId: String
+			-messageGroupId: String
+			-status: String
+			-page: PageRequest
+			-sort: List<SortRequest>
+		}
+        class MessageHistoryResponse {
+			-messageId: String
+			-messageGroupId: String
+			-brandId: String
+			-templateId: String
+			-chatbotId: String
+			-content: String
+			-status: MessageStatus
+			-resultCode: String
+			-resultMessage: String
+			-createDateTime: LocalDateTime
+			-statusUpdateDateTime: LocalDateTime
+		}
+    }
+}
+
+' Infrastructure Layer
+package "infrastructure" {
+    class EventHubMessagePublisher implements MessageEventPublisher
+    class EventHubMessageSubscriber implements MessageEventSubscriber
+    class EventHubConfig {
+        -connectionString: String
+        -sendHubName: String
+        -resultHubName: String
+        +createEventHubClient(): EventHubClient
+    }
+    class EncryptService {
+        -encryptionKey: String
+        +encrypt(data: String): String
+        +decrypt(encryptedData: String): String
+    }
+}
+
+' Configuration Layer
+package "config" {
+    class SwaggerConfig
+    class AsyncConfig {
+        +asyncExecutor(): Executor
+        +asyncExceptionHandler(): AsyncUncaughtExceptionHandler
+    }
+}
+
+' Exception Layer
+package "exception" {
+    class GlobalExceptionHandler
+    class BusinessException
+    class SystemException
+    class ValidationException
+}
+
+' Key Relationships
+AuthController --> AuthService
+AuthServiceImpl ..|> AuthService
+AuthServiceImpl --> UserRepository
+
+BaseDataController --> BaseDataService
+BaseDataServiceImpl ..|> BaseDataService
+BaseDataServiceImpl --> BrandRepository
+BaseDataServiceImpl --> TemplateRepository
+BaseDataServiceImpl --> ChatbotRepository
+
+SendMessageController --> SendMessageService
+SendMessageController --> RecipientService
+SendMessageServiceImpl ..|> SendMessageService
+SendMessageServiceImpl --> MessageRepository
+SendMessageServiceImpl --> MessageEventPublisher
+
+RecipientServiceImpl ..|> RecipientService
+RecipientServiceImpl --> RecipientRepository
+RecipientServiceImpl --> EncryptService
+RecipientServiceImpl --> MessageEventPublisher
+
+HistoryController --> HistoryService
+HistoryServiceImpl ..|> HistoryService
+HistoryServiceImpl --> HistoryRepository
+HistoryServiceImpl --> MessageEventSubscriber
+
+@enduml
+
+
