@@ -1,6 +1,5 @@
 package com.ktds.rcsp.message.service;
 
-import com.ktds.rcsp.common.event.RecipientUploadEvent;
 import com.ktds.rcsp.message.domain.ProcessingStatus;
 import com.ktds.rcsp.message.domain.Recipient;
 import com.ktds.rcsp.message.infra.EncryptionService;

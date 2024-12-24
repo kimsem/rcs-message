@@ -1,6 +1,7 @@
 package com.ktds.rcsp.message.infra.config;
 
 import com.azure.messaging.eventhubs.EventHubClientBuilder;
+import com.azure.messaging.eventhubs.EventHubConsumerClient;
 import com.azure.messaging.eventhubs.EventHubProducerClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -21,4 +22,13 @@ public class EventHubConfig {
                .connectionString(connectionString, eventHubName)
                .buildProducerClient();
    }
+
+   @Bean
+   public EventHubConsumerClient eventHubConsumerClient() {
+      return new EventHubClientBuilder()
+              .connectionString(connectionString, eventHubName)
+              .consumerGroup(EventHubClientBuilder.DEFAULT_CONSUMER_GROUP_NAME)
+              .buildConsumerClient();
+   }
+
 }

@@ -10,6 +10,10 @@ spring:
     hibernate:
       ddl-auto: none
     show-sql: true
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+      database: ${MONGODB_DATABASE}
     
 server:
   port: 8082
@@ -18,3 +22,6 @@ azure:
   eventhub:
     connection-string: ${EVENTHUB_CONNECTION_STRING}
     name: ${EVENTHUB_NAME}
+
+encryption:
+  key: ${ENCRYPTION_KEY}
