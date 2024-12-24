@@ -1,0 +1,183 @@
+!theme mono
+title RCS 포털 시스템 - 데이터 모델
+
+' Style configurations
+skinparam linetype ortho
+hide circle
+
+' Auth Service Database
+package "인증 서비스 DB (PostgreSQL)" {
+   entity "Users (사용자)" as users {
+       * user_id: varchar(50) <<PK>> -- "사용자 ID"
+       --
+       master_id: varchar(50) -- "기업 ID"
+       password: varchar(255) -- "비밀번호(암호화)"
+       role: varchar(20) -- "권한(ADMIN/USER)"
+       refresh_token: varchar(255) -- "JWT Refresh 토큰"
+       token_expired_at: timestamp -- "토큰 만료일시" 
+       status: varchar(20) -- "상태(활성/비활성)"
+       last_login_at: timestamp -- "최종 로그인 일시"
+       created_at: timestamp -- "생성일시"
+       updated_at: timestamp -- "수정일시"
+   }
+}
+
+' Base Data Service Database
+package "기준정보 서비스 DB (PostgreSQL)" {
+   entity "Brands (브랜드)" as brands {
+       * brand_id: varchar(50) <<PK>> -- "브랜드 ID"
+       --
+       master_id: varchar(50) -- "기업 ID"
+       brand_name: varchar(100) -- "브랜드명"
+       status: varchar(20) -- "상태(활성/비활성)"
+       created_at: timestamp -- "생성일시"
+       updated_at: timestamp -- "수정일시"
+   }
+
+   entity "Templates (템플릿)" as templates {
+       * template_id: varchar(50) <<PK>> -- "템플릿 ID"
+       --
+       brand_id: varchar(50) <<FK>> -- "브랜드 ID"
+       template_name: varchar(100) -- "템플릿명"
+       content: text -- "템플릿 내용"
+       status: varchar(20) -- "상태(활성/비활성)"
+       created_at: timestamp -- "생성일시"
+       updated_at: timestamp -- "수정일시"
+   }
+
+   entity "Chatbots (발신번호)" as chatbots {
+       * chatbot_id: varchar(50) <<PK>> -- "챗봇 ID"
+       --
+       brand_id: varchar(50) <<FK>> -- "브랜드 ID"
+       phone_number: varchar(20) -- "발신번호"
+       status: varchar(20) -- "상태(활성/비활성)"
+       created_at: timestamp -- "생성일시"
+       updated_at: timestamp -- "수정일시"
+   }
+}
+
+' Message Service Database (Write)
+package "메시지 발송 서비스 DB (PostgreSQL)" {
+   entity "Message_Groups (메시지 그룹)" as message_groups {
+       * message_group_id: varchar(50) <<PK>> -- "메시지 그룹 ID"
+       --
+       master_id: varchar(50) -- "기업 ID"
+       brand_id: varchar(50) -- "브랜드 ID"
+       template_id: varchar(50) -- "템플릿 ID"
+       chatbot_id: varchar(50) -- "챗봇 ID"
+       status: varchar(20) -- "상태(생성/업로드중/준비/발송중/완료/실패)"
+       total_count: integer -- "전체 수신자 수"
+       processed_count: integer -- "처리된 수신자 수"
+       created_at: timestamp -- "생성일시"
+       updated_at: timestamp -- "수정일시"
+   }
+
+   entity "Recipients (수신자)" as recipients {
+       * recipient_id: varchar(50) <<PK>> -- "수신자 ID"
+       --
+       message_group_id: varchar(50) <<FK>> -- "메시지 그룹 ID"
+       encrypted_phone: varchar(255) -- "암호화된 수신자 전화번호"
+       processing_status: varchar(20) -- "처리상태(업로드/처리중/완료/실패)"
+       error_code: varchar(20) -- "오류 코드"
+       error_message: varchar(255) -- "오류 메시지"
+       created_at: timestamp -- "생성일시"
+       updated_at: timestamp -- "수정일시"
+   }
+
+   entity "Messages (메시지)" as messages {
+       * message_id: varchar(50) <<PK>> -- "메시지 ID"
+       --
+       message_group_id: varchar(50) <<FK>> -- "메시지 그룹 ID"
+       recipient_id: varchar(50) -- "수신자 ID"
+       content: text -- "메시지 내용"
+       status: varchar(20) -- "상태(대기/발송중/발송완료/실패)"
+       result_code: varchar(20) -- "처리결과 코드"
+       result_message: varchar(255) -- "처리결과 메시지"
+       created_at: timestamp -- "생성일시"
+       updated_at: timestamp -- "수정일시"
+   }
+}
+
+' History Service Database (Read)
+package "이력조회 서비스 DB (MongoDB)" {
+   entity "Message_History (메시지 이력)" as message_history {
+       * _id: ObjectId <<PK>> -- "MongoDB 고유 ID"
+       --
+       message_id: varchar(50) -- "메시지 ID"
+       message_group_id: varchar(50) -- "메시지 그룹 ID"
+       master_id: varchar(50) -- "기업 ID"
+       brand_id: varchar(50) -- "브랜드 ID"
+       template_id: varchar(50) -- "템플릿 ID"
+       chatbot_id: varchar(50) -- "챗봇 ID"
+       encrypted_phone: varchar(255) -- "암호화된 수신자 전화번호"
+       content: text -- "메시지 내용"
+       status: varchar(20) -- "상태"
+       result_code: varchar(20) -- "처리결과 코드"
+       result_message: varchar(255) -- "처리결과 메시지"
+       created_at: timestamp -- "생성일시"
+       updated_at: timestamp -- "수정일시"
+   }
+}
+
+' Relationships
+brands ||--o{ templates
+brands ||--o{ chatbots
+message_groups ||--o{ recipients
+message_groups ||--o{ messages
+recipients ||--o{ messages
+
+' Notes
+note right of users
+ 사용자 계정 정보
+ - 비밀번호는 SHA-256으로 암호화 저장
+ - JWT 기반 인증을 위한 Refresh 토큰 관리
+ - 상태값: ACTIVE(활성), INACTIVE(비활성)
+ - master_id는 기업을 구분하는 식별자
+ - role은 ADMIN 또는 USER로 구분
+end note
+
+note right of brands
+ 브랜드 정보
+ - master_id로 기업별 브랜드 관리
+ - 상태값: ACTIVE(활성), INACTIVE(비활성)
+ - 브랜드별로 템플릿과 발신번호 관리
+end note
+
+note right of message_groups
+ 메시지 발송 그룹 정보
+ 상태값:
+ - CREATED: 그룹 생성됨
+ - UPLOADING: 수신자 업로드 중
+ - READY: 발송 준비 완료
+ - SENDING: 발송 중
+ - COMPLETED: 발송 완료
+ - FAILED: 실패
+end note
+
+note right of recipients
+ 수신자 정보
+ 상태값:
+ - UPLOADED: 업로드됨
+ - PROCESSING: 암호화 처리중
+ - COMPLETED: 처리 완료
+ - FAILED: 처리 실패
+ * 전화번호는 RSA 알고리즘으로 암호화
+end note
+
+note right of messages
+ 발송 메시지 정보
+ 상태값:
+ - PENDING: 발송 대기
+ - SENDING: 발송 진행중
+ - SENT: 발송 완료
+ - FAILED: 발송 실패
+end note
+
+note right of message_history
+ 메시지 발송 이력
+ - 조회 성능 최적화를 위해 MongoDB 사용
+ - 모든 관련 정보를 비정규화하여 저장
+ - 수신자 정보는 암호화된 상태로 저장
+ - 대용량 데이터 처리에 최적화
+ - 이벤트 소싱 패턴 적용으로 완벽한 추적성 제공
+end note
