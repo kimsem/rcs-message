@@ -1,0 +1,156 @@
+@startuml
+!theme mono
+
+title RCS Portal 시스템 - 논리 아키텍처
+
+skinparam linetype ortho
+skinparam nodesep 100
+skinparam ranksep 70
+skinparam padding 10
+skinparam component {
+  padding 20
+}
+
+package "클라이언트 계층" as client_layer {
+    [웹 앱] as webApp
+}
+
+package "게이트웨이 계층" as gateway_layer {
+    [Application Gateway] as appGateway
+    note right of appGateway
+        - SSL 종료
+        - JWT 인증/인가
+        - 라우팅
+        - 로드밸런싱
+    end note
+}
+
+package "API 계층" as api_layer {
+    [인증 서비스] as authService
+    [메시지 발송 서비스] as msgService
+    [이력 조회 서비스] as historyService
+    [암호화 상태 조회 서비스] as encryptStatusService
+    [기준정보 조회 서비스] as baseDataService
+}
+
+package "외부 시스템" as external_layer {
+    [발송 처리기] as msgSender
+}
+
+package "서비스 계층" as service_layer {
+    [JWT 관리자] as jwtManager
+    
+    package "메시지 발송 도메인" {
+        [수신자 파싱기] as recipientParser
+        [수신자 암호화기] as recipientEncryptor
+        [메시지 작성기] as msgBuilder
+    }
+    
+    package "조회 도메인" {
+        [암호화 상태 조회기] as encryptStatusReader
+        [이력 조회기] as historyReader
+        [기준정보 조회기] as baseDataReader
+    }
+}
+
+package "메시지 큐 계층" as queue_layer {
+    package "Azure Event Hub" as eventHub {
+        queue "수신자 암호화 Queue" as encryptQueue
+        queue "발송 Queue" as sendQueue
+        queue "결과 Queue" as resultQueue
+    }
+}
+
+package "데이터 계층" as data_layer {
+    database "Write Database" as writeDb {
+        [발송요청 테이블] as requestTable
+        [암호화된수신자 테이블] as encryptedRecipientsTable
+    }
+    
+    database "Read Database" as readDb {
+        [발송이력 테이블] as historyTable
+    }
+
+    database "기준정보 Database" as baseDb {
+        [기업정보 테이블] as companyTable
+        [브랜드정보 테이블] as brandTable
+        [발신번호정보 테이블] as senderTable
+        [템플릿정보 테이블] as templateTable
+    }
+}
+
+' 계층간 간격 설정
+client_layer -[hidden]d- gateway_layer
+gateway_layer -[hidden]d- api_layer
+api_layer -[hidden]d- service_layer
+service_layer -[hidden]d- queue_layer
+queue_layer -[hidden]d- data_layer
+
+' 처리 흐름
+webApp --> appGateway : 1. HTTPS
+
+appGateway --> authService : 2. JWT 검증
+appGateway --> baseDataService : 3. 기준정보 조회
+appGateway --> msgService : 4. 메시지 작성
+appGateway --> msgService : 5. 엑셀 업로드
+appGateway --> encryptStatusService : 6. 암호화 상태 조회
+appGateway --> historyService : 10. 이력 조회
+
+historyService --> historyReader
+historyReader --> historyTable : 이력 조회
+
+baseDataService --> baseDataReader
+baseDataReader --> baseDb : 기준정보 조회
+
+msgService --> recipientParser : 7. 수신자 목록 파싱
+
+recipientParser --> encryptQueue : 8. 암호화 요청\n(10만건 단위 분할)
+encryptQueue --> recipientEncryptor
+recipientEncryptor --> encryptedRecipientsTable : 9. 건별 저장
+
+encryptStatusService --> encryptStatusReader
+encryptStatusReader --> encryptedRecipientsTable : 상태 조회
+
+msgService --> msgBuilder
+msgBuilder --> sendQueue : 11. 발송 요청
+sendQueue --> requestTable : 11a. 발송 요청 저장
+sendQueue --> historyTable : 11b. 발송 이력 저장
+
+msgSender --> resultQueue : 12. 발송 결과 전달
+
+resultQueue --> msgService : 13. 결과 수신
+msgService --> requestTable : 14a. 요청상태 업데이트
+msgService --> historyTable : 14b. 이력상태 업데이트
+
+note right of baseDataReader
+    기준정보 조회 프로세스:
+    1. 기업/담당자 권한 확인
+    2. 브랜드/발신번호/템플릿 조회
+    3. 메시지 작성 화면에 제공
+end note
+
+note right of recipientParser
+    수신자 처리 프로세스:
+    1. 엑셀 파일 파싱
+    2. 10만건 단위로 분할
+    3. Queue에 암호화 요청
+    4. 진행률 모니터링
+end note
+
+note right of recipientEncryptor
+    암호화 처리 프로세스:
+    1. Queue에서 수신자 정보 가져오기
+    2. 수신자 번호 암호화
+    3. DB에 건별 저장
+    4. 상태 업데이트
+end note
+
+note right of msgBuilder
+    메시지 작성 프로세스:
+    1. 기준정보 기반 메시지 작성
+    2. 수신자 목록 확인
+    3. 발송 Queue에 메시지 전송
+end note
+
+@enduml
+
