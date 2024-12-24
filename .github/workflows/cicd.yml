@@ -93,7 +93,7 @@ jobs:
       - name: Build Applications
         run: |
           chmod +x gradlew
-          ./gradlew common-service:clean common:build -x test
+          ./gradlew common:clean common:build -x test
           ./gradlew auth-service:clean auth:build -x test
           ./gradlew message-service:clean message:build -x test
           ./gradlew history-service:clean history:build -x test
@@ -111,7 +111,7 @@ jobs:
 
       - name: Build and Push Container Images
         run: |
-          # Common Service
+          # Common
           docker build -f deployment/Dockerfile-common \
             -t ${{ env.IMAGE_REG }}/${{ env.IMAGE_ORG }}/rcs-common:${{ env.IMAGE_TAG }} \
             -t ${{ env.IMAGE_REG }}/${{ env.IMAGE_ORG }}/rcs-common:latest .
@@ -173,7 +173,7 @@ jobs:
           kubectl apply -f deployment/deploy.yaml
 
           # Wait for application pods
-          kubectl wait --for=condition=ready pod -l "app=common-service,userid=${{ github.event.inputs.USERID }}" -n ${{ env.APP_NAMESPACE }} --timeout=600s || true
+          kubectl wait --for=condition=ready pod -l "app=common,userid=${{ github.event.inputs.USERID }}" -n ${{ env.APP_NAMESPACE }} --timeout=600s || true
           kubectl wait --for=condition=ready pod -l "app=auth-service,userid=${{ github.event.inputs.USERID }}" -n ${{ env.APP_NAMESPACE }} --timeout=600s || true
           kubectl wait --for=condition=ready pod -l "app=message-service,userid=${{ github.event.inputs.USERID }}" -n ${{ env.APP_NAMESPACE }} --timeout=600s || true
           kubectl wait --for=condition=ready pod -l "app=history-service,userid=${{ github.event.inputs.USERID }}" -n ${{ env.APP_NAMESPACE }} --timeout=600s || true
