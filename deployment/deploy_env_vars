@@ -1,0 +1,14 @@
+# Application Settings
+application_name=rcs-message
+resource_group=tiu-dgga-rg
+location=koreacentral
+
+# Image Settings
+image_org=rcs
+image_credential=acr-credentials
+
+# Resource Settings
+resources_requests_cpu=250m
+resources_requests_memory=512Mi
+resources_limits_cpu=500m
+resources_limits_memory=1024Mi
