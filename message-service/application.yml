@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: message-service
+  datasource:
+    url: ${MESSAGE_DB_URL}
+    username: ${MESSAGE_DB_USERNAME}
+    password: ${MESSAGE_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    
+server:
+  port: 8082
+
+azure:
+  eventhub:
+    connection-string: ${EVENTHUB_CONNECTION_STRING}
+    name: ${EVENTHUB_NAME}

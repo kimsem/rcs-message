@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: common
+
+logging:
+  level:
+    com.ktds.rcsp: DEBUG

@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: basedata-service
+  datasource:
+    url: ${BASEDATA_DB_URL}
+    username: ${BASEDATA_DB_USERNAME}
+    password: ${BASEDATA_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    
+server:
+  port: 8084
+
+# Source Files

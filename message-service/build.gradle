@@ -1,0 +1,10 @@
+dependencies {
+    implementation project(':common')
+    implementation 'com.azure:azure-messaging-eventhubs:5.15.0'
+    implementation 'org.apache.commons:commons-csv:1.10.0'
+}
+
+//history-service/build.gradle
+dependencies {
+    implementation project(':common')
+}

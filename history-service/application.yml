@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: history-service
+  datasource:
+    url: ${HISTORY_DB_URL}
+    username: ${HISTORY_DB_USERNAME}
+    password: ${HISTORY_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    
+server:
+  port: 8083
