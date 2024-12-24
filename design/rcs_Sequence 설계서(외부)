@@ -1,0 +1,99 @@
+외부 시퀀스 다이어그램
+
+!theme mono
+title RCS 포털 - 외부 시퀀스 다이어그램 (시스템 통합)
+
+actor Client
+participant ICIS
+participant RCSBizCenter
+participant APIGateway
+participant "인증 서비스\n(AuthService)" as AuthService
+participant "기준정보 서비스\n(BaseDataService)" as BaseDataService
+participant "메시지발송 서비스\n(MessageService)" as MessageService
+participant "수신정보 암호화 서비스\n(RecipientService)" as RecipientService
+participant "이력조회 서비스\n(HistoryService)" as HistoryService
+participant "Azure Queue\nService" as QueueService
+participant "Azure Event Hub" as EventHub
+participant "발송 모듈" as SendModule
+
+' 기준정보 인입 흐름
+Client -> ICIS: RCS 청약 신청
+ICIS -> BaseDataService: 청약 정보 자동 연계 (DB2DB)
+
+Client -> RCSBizCenter: 기업/브랜드 등록
+Client -> RCSBizCenter: 대표발신번호 설정
+RCSBizCenter -> BaseDataService: 기준 정보 자동 연계 (DB2DB)
+
+' 인증 서비스 호출
+Client -> APIGateway: POST /api/auth/login
+note right: 사용자 로그인 요청
+APIGateway -> AuthService: POST /api/auth/login
+
+Client -> APIGateway: GET /api/auth/verify
+note right: JWT 토큰 유효성 검증
+APIGateway -> AuthService: GET /api/auth/verify
+
+' 기준정보 서비스 호출
+Client -> APIGateway: GET /api/base/brands?masterId={masterId}
+note right: 기업의 브랜드 목록 조회
+APIGateway -> BaseDataService: GET /api/base/brands
+
+Client -> APIGateway: GET /api/base/templates?brandId={brandId}
+note right: 선택된 브랜드의 템플릿 목록 조회
+APIGateway -> BaseDataService: GET /api/base/templates
+
+Client -> APIGateway: GET /api/base/chatbots?brandId={brandId}
+note right: 선택된 브랜드의 발신번호 목록 조회
+APIGateway -> BaseDataService: GET /api/base/chatbots
+
+' 메시지발송 서비스 호출
+Client -> APIGateway: POST /api/messages/recipients/upload
+note right: 수신자 정보 파일 업로드
+APIGateway -> MessageService: POST /api/messages/recipients/upload
+MessageService -> QueueService: 수신정보 파일 적재
+QueueService -> RecipientService: 수신정보 라인별 암호화 요청
+RecipientService -> MessageService: 암호화된 수신정보 저장
+
+Client -> APIGateway: GET /api/messages/recipients/status
+note right: 수신자 정보 암호화 진행률 조회
+APIGateway -> MessageService: GET /api/messages/recipients/status
+MessageService -> RecipientService: 암호화 처리 현황 조회
+
+Client -> APIGateway: GET /api/messages/recipients/search
+note right: 암호화된 수신자 목록 조회
+APIGateway -> MessageService: GET /api/messages/recipients/search
+
+Client -> APIGateway: POST /api/messages/send
+note right: RCS 메시지 발송 요청
+APIGateway -> MessageService: POST /api/messages/send
+MessageService -> EventHub: 발송 요청 메시지 적재
+EventHub -> SendModule: 발송 요청 전달
+SendModule -> EventHub: 발송 결과 적재
+EventHub -> MessageService: 발송 상태 업데이트
+EventHub -> HistoryService: 발송 이력 업데이트
+
+' 이력조회 서비스 호출
+Client -> APIGateway: POST /api/history/messages/search
+note right: 메시지 발송 이력 조회
+APIGateway -> HistoryService: POST /api/history/messages/search
+
+note right of RecipientService
+  수신정보 암호화 처리:
+  1. Queue에서 수신정보 라인별 수신
+  2. RSA 암호화 모듈 사용
+  3. 암호화 현황 관리
+end note
+
+note right of QueueService
+  Queue 처리:
+  1. 수신정보 파일 파싱하여 라인단위 적재
+  2. 라인단위 처리로 대용량 처리 가능
+  3. 처리현황 실시간 제공
+end note
+
+note right of EventHub
+  이벤트 처리:
+  1. 발송 요청/결과 비동기 처리
+  2. CQRS 패턴 적용
+  3. 시스템 간 결합도 감소
+end note
