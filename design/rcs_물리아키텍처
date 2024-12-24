@@ -1,0 +1,118 @@
+@startuml
+!theme mono
+
+skinparam {
+    BackgroundColor transparent
+    IconPrivateBackgroundColor white
+    IconPrivateColor black
+    IconPublicBackgroundColor white
+    IconPublicColor black
+}
+
+title MVP - RCS Portal 시스템 - 물리 아키텍처 (Azure)
+
+rectangle "Resource Group: rcs-portal-rg" {
+    rectangle "Virtual Network (rcs-portal-vnet)" {
+        rectangle "Public Subnet" {
+            component [Azure Web App\nfor Portal] as webapp
+        }
+
+        rectangle "Private Subnet" {
+            rectangle "AKS Cluster (Single Node)" {
+                rectangle "App Node Pool" {
+                    component [Ingress Controller] as ingress
+                    
+                    rectangle "Message Service Pod" as msg_pod {
+                        component [메시지 API] as msg_api
+                        component [메시지 작성기] as msg_builder
+                        component [수신자 파싱기] as recipient_parser
+                        component [수신자 암호화기] as recipient_encryptor
+                    }
+                    
+                    rectangle "Query Service Pod" as query_pod {
+                        component [이력조회 API] as history_api
+                        component [상태조회 API] as status_api
+                        component [기준정보 API] as base_api
+                    }
+
+                    rectangle "Database Pods" {
+                        database "PostgreSQL" as postgres {
+                            [Write Database] as write_db
+                            [기준정보 Database] as base_db
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    package "Event Hub Namespace" as event_hub {
+        queue "수신자 암호화\nQueue" as encrypt_queue
+        queue "발송\nQueue" as send_queue
+        queue "결과\nQueue" as result_queue
+    }
+}
+
+cloud "MongoDB Atlas" as mongo_atlas {
+    database "Read Database" as read_db
+}
+
+actor Client as client
+actor Developer as developer
+component [External RCS\nSender] as ext_sender
+
+' Network Flow
+client --> webapp : "1. HTTPS"
+webapp --> ingress : "2. HTTPS"
+
+ingress --> msg_pod : "3. /messages/*"
+ingress --> query_pod : "4. /query/*"
+
+msg_api --> encrypt_queue : "5. 암호화 요청"
+msg_api --> send_queue : "6. 발송 요청"
+msg_api <-- result_queue : "7. 결과 수신"
+
+recipient_encryptor --> write_db : "8. 암호화 결과 저장"
+msg_api --> write_db : "9. 발송 요청/결과 저장"
+history_api --> read_db : "10. 이력 조회"
+base_api --> base_db : "11. 기준정보 조회"
+
+ext_sender --> result_queue : "12. 발송 결과"
+
+developer --> AKS : "kubectl"
+
+note right of webapp
+  MVP 구성:
+  - Basic Tier 사용
+  - 단일 인스턴스
+end note
+
+note right of AKS
+  MVP AKS 구성:
+  - 단일 노드
+  - 최소 Pod 리소스 할당
+  - PostgreSQL Pod 포함
+end note
+
+note right of event_hub
+  Event Hub 구성:
+  - Basic Tier
+  - 최소 처리량 단위
+end note
+
+note right of mongo_atlas
+  MongoDB Atlas:
+  - Serverless Tier
+  - Pay-as-you-go
+end note
+
+legend right
+| 구분 | 설명 |
+|---|---|
+| Infrastructure | AKS, Event Hub |
+| Database | PostgreSQL Pod, MongoDB Atlas |
+| Application | Web App, Microservices |
+endlegend
+
+@enduml
+
