@@ -8,9 +8,9 @@ import java.util.UUID;
 public abstract class Event {
     private final String eventId;
     private final LocalDateTime timestamp;
-    private final String eventType;
+    private final EventType eventType;
 
-    protected Event(String eventType) {
+    protected Event(EventType eventType) {
         this.eventId = UUID.randomUUID().toString();
         this.timestamp = LocalDateTime.now();
         this.eventType = eventType;
