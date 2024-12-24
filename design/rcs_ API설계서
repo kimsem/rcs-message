@@ -1,0 +1,14 @@
+서비스명|마이크로서비스 이름|유저스토리 ID|유저스토리 제목|Controller 이름|API 목적|API Method|API 그룹 Path|API Path|Query Key|Query <변수유형> <변수명>|Request DTO 이름|Request DTO 배열 여부|Request DTO 구조|Response DTO 이름|Response DTO 배열 여부|Response DTO 구조
+인증서비스|AuthService|RCSP-005|로그인|AuthController|로그인 요청|POST|/api/auth|/login|||LoginRequest|No|String masterId; String userId; String password|LoginResponse|No|String accessToken; String refreshToken
+인증서비스|AuthService|RCSP-005|로그인|AuthController|토큰 검증|GET|/api/auth|/verify||||No||TokenVerifyResponse|No|boolean isValid; String userId
+메시지발송서비스|MessageService|RCSP-045|수신번호 업로드|MessageController|수신자 정보 업로드|POST|/api/messages|/recipients/upload|||RecipientUploadRequest|No|MultipartFile file|RecipientUploadResponse|No|String messageGroupId; boolean status
+메시지발송서비스|MessageService|RCSP-055|수신번호 업로드 현황|MessageController|수신자 정보 업로드 진행률 조회|GET|/api/messages|/recipients/status|messageGroupId|String messageGroupId|||UploadProgressResponse|No|int processedCount; int successCount; int failCount; int totalCount; String status
+메시지발송서비스|MessageService|RCSP-055|수신번호 업로드 현황|MessageController|수신자 정보 조회|GET|/api/messages|/recipients/search|||RecipientSearchRequest|No|String messageGroupId; PageRequest page|Page<RecipientResponse>|No|List<RecipientDTO> content; PageInfo pageInfo
+메시지발송서비스|MessageService|New|메시지그룹ID 중복체크|MessageController|메시지그룹ID 중복 검사|GET|/api/messages|/group/check|messageGroupId|String messageGroupId|||MessageGroupCheckResponse|No|boolean exists
+메시지발송서비스|MessageService|RCSP-060|메시지발송|MessageController|메시지 발송|POST|/api/messages|/send|||MessageSendRequest|No|String brandId; String templateId; String chatbotId; String messageGroupId; String body; String userContact|MessageSendResponse|No|String messageGroupId; String status
+기준정보서비스|BaseDataService|RCSP-025|브랜드선택|BaseDataController|브랜드 목록 조회|GET|/api/base|/brands|masterId|String masterId|||BrandListResponse|Yes|String brandId; String brandName
+기준정보서비스|BaseDataService|RCSP-030|메시지템플릿선택|BaseDataController|템플릿 목록 조회|GET|/api/base|/templates|brandId|String brandId|||TemplateListResponse|Yes|String templateId; String templateName
+기준정보서비스|BaseDataService|RCSP-035|발신번호선택|BaseDataController|발신번호 목록 조회|GET|/api/base|/chatbots|brandId|String brandId|||ChatbotListResponse|Yes|String chatbotId
+이력조회서비스|HistoryService|RCSP-020|발송이력조회|HistoryController|메시지 발송 이력 조회|POST|/api/history|/messages/search|||MessageHistorySearchRequest|No|String startDate; String endDate; String brandId; String chatbotId; String messageGroupId; String status; PageRequest page; List<SortRequest> sort|Page<MessageHistoryResponse>|No|List<MessageHistoryDTO> content; PageInfo pageInfo
+
+
