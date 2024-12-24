@@ -1,5 +1,6 @@
 package com.ktds.rcsp.message.service;
 
+import com.ktds.rcsp.common.event.RecipientUploadEvent;
 import com.ktds.rcsp.message.domain.ProcessingStatus;
 import com.ktds.rcsp.message.domain.Recipient;
 import com.ktds.rcsp.message.infra.EncryptionService;
@@ -28,33 +29,39 @@ public class RecipientServiceImpl implements RecipientService {
    private final EncryptionService encryptionService;
    private final EventHubMessagePublisher eventPublisher;
 
-   @Async("recipientProcessorExecutor")
-   @Override
-   public void processRecipientFile(String messageGroupId, MultipartFile file) {
-       try (BufferedReader reader = new BufferedReader(
-               new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
-           
-           CSVParser csvParser = CSVFormat.DEFAULT
-                   .withFirstRecordAsHeader()
-                   .withIgnoreHeaderCase()
-                   .withTrim()
-                   .parse(reader);
+    @Async("recipientProcessorExecutor")
+    @Override
+    public void processRecipientFile(String messageGroupId, MultipartFile file) {
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
 
-           for (CSVRecord record : csvParser) {
-               String phoneNumber = record.get("phoneNumber");
-               encryptAndSaveRecipient(messageGroupId, phoneNumber);
-           }
+            // 최신 CSVFormat 사용 방식
+            CSVParser csvParser = CSVFormat.Builder.create()
+                    .setHeader()
+                    .setIgnoreHeaderCase(true)
+                    .setTrim(true)
+                    .setSkipHeaderRecord(true)
+                    .build()
+                    .parse(reader);
 
-           eventPublisher.publishUploadEvent(RecipientUploadEvent.builder()
-                   .messageGroupId(messageGroupId)
-                   .status(true)
-                   .build());
+            int totalCount = 0;
+            for (CSVRecord record : csvParser) {
+                String phoneNumber = record.get("phoneNumber");
+                encryptAndSaveRecipient(messageGroupId, phoneNumber);
+                totalCount++;
+            }
 
-       } catch (Exception e) {
-           log.error("Error processing recipient file", e);
-           throw new RuntimeException("Failed to process recipient file", e);
-       }
-   }
+            eventPublisher.publishUploadEvent(RecipientUploadEvent.builder()
+                    .messageGroupId(messageGroupId)
+                    .fileName(file.getOriginalFilename())
+                    .totalCount(totalCount)
+                    .build());
+
+        } catch (Exception e) {
+            log.error("Error processing recipient file", e);
+            throw new RuntimeException("Failed to process recipient file", e);
+        }
+    }
 
    @Override
    @Transactional
