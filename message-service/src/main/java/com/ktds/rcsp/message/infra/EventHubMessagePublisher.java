@@ -4,9 +4,13 @@ import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.EventHubProducerClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ktds.rcsp.common.event.MessageSendEvent;
+import com.ktds.rcsp.common.event.RecipientUploadEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.Collections;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -27,14 +31,19 @@ public class EventHubMessagePublisher {
        }
    }
 
-   public void publishUploadEvent(RecipientUploadEvent event) {
-       try {
-           String eventData = objectMapper.writeValueAsString(event);
-           producerClient.send(EventData.create(eventData.getBytes()));
-           log.info("Published recipient upload event: {}", event.getMessageGroupId());
-       } catch (Exception e) {
-           log.error("Error publishing recipient upload event", e);
-           throw new RuntimeException("Failed to publish recipient upload event", e);
-       }
-   }
+    public void publishUploadEvent(RecipientUploadEvent event) {
+        try {
+            String eventData = objectMapper.writeValueAsString(event);
+            EventData eventDataObj = new EventData(eventData.getBytes());
+
+            // EventData를 List로 감싸서 전송
+            List<EventData> events = Collections.singletonList(eventDataObj);
+            producerClient.send(events);
+
+            log.info("Published recipient upload event: {}", event.getMessageGroupId());
+        } catch (Exception e) {
+            log.error("Error publishing recipient upload event", e);
+            throw new RuntimeException("Failed to publish recipient upload event", e);
+        }
+    }
 }
