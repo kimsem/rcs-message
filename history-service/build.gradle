@@ -1,3 +1,8 @@
 dependencies {
     implementation project(':common')
 }
+
+bootJar {
+    archiveFileName = "rcs-history.jar"
+    mainClass = 'com.ktds.rcsp.history.HistoryServiceApplication'
+}

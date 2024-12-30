@@ -1,8 +1,15 @@
 dependencies {
     implementation project(':common')
+    // Azure Event Hubs 의존성
+    implementation 'com.azure:azure-messaging-eventhubs:5.15.5'
+    implementation 'com.azure:azure-messaging-eventhubs-checkpointstore-blob:1.16.5'
+    implementation 'com.azure:azure-identity:1.9.1'
+    // Apache Commons CSV 의존성 추가
+    implementation 'org.apache.commons:commons-csv:1.10.0'
 }
 
-//history-service/build.gradle
-dependencies {
-    implementation project(':common')
+bootJar {
+    archiveFileName = "rcs-message.jar"
+    mainClass = 'com.ktds.rcsp.message.MessageServiceApplication'
 }
+

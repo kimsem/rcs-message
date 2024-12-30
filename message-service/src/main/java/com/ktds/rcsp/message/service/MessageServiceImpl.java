@@ -6,7 +6,7 @@ import com.ktds.rcsp.message.domain.MessageStatus;
 import com.ktds.rcsp.message.dto.MessageSendRequest;
 import com.ktds.rcsp.message.dto.MessageSendResponse;
 import com.ktds.rcsp.message.dto.UploadProgressResponse;
-import com.ktds.rcsp.common.infra.EventHubMessagePublisher;
+import com.ktds.rcsp.message.infra.EventHubMessagePublisher;
 import com.ktds.rcsp.message.repository.MessageRepository;
 import com.ktds.rcsp.message.repository.RecipientRepository;
 import lombok.RequiredArgsConstructor;

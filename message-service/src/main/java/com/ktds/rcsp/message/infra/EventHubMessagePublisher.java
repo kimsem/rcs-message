@@ -2,6 +2,7 @@ package com.ktds.rcsp.message.infra;
 
 import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.EventHubProducerClient;
+import com.azure.messaging.eventhubs.EventDataBatch;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ktds.rcsp.common.event.MessageSendEvent;
 import com.ktds.rcsp.common.event.RecipientUploadEvent;
@@ -20,10 +21,23 @@ public class EventHubMessagePublisher {
    private final EventHubProducerClient producerClient;
    private final ObjectMapper objectMapper;
 
+
+
    public void publishMessageSendEvent(MessageSendEvent event) {
        try {
+           EventDataBatch batch = producerClient.createBatch();
            String eventData = objectMapper.writeValueAsString(event);
-           producerClient.send(EventData.create(eventData.getBytes()));
+           // 새로운 EventData 인스턴스 생성
+           EventData evt = new EventData(eventData.getBytes());
+
+           if (!batch.tryAdd(evt)) {
+               producerClient.send(batch);
+               batch = producerClient.createBatch();
+               if (!batch.tryAdd(evt)) {
+                   throw new IllegalArgumentException("Event is too large for an empty batch");
+               }
+           }
+           producerClient.send(batch);
            log.info("Published message send event: {}", event.getMessageId());
        } catch (Exception e) {
            log.error("Error publishing message send event", e);
