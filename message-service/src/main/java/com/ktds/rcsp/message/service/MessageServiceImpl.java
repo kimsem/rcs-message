@@ -94,9 +94,10 @@ public class MessageServiceImpl implements MessageService {
    public void processMessageResult(String messageId, String status) {
        Message message = messageRepository.findById(messageId)
                .orElseThrow(() -> new RuntimeException("Message not found"));
-       
-       message.updateStatus(MessageStatus.valueOf(status));
-       messageRepository.save(message);
+
+//       message.updateStatus(MessageStatus.valueOf(status));
+//       messageRepository.save(message);
+       messageRepository.delete(message); // EventHub에서 결과 적재 받으면 발송DB에서 삭제
    }
 
    @Override
@@ -105,7 +106,7 @@ public class MessageServiceImpl implements MessageService {
        long totalCount = recipientRepository.countByMessageGroupId(messageGroupId);
        long successCount = recipientRepository.countByMessageGroupIdAndStatus(messageGroupId, "COMPLETED");
        long failCount = recipientRepository.countByMessageGroupIdAndStatus(messageGroupId, "FAILED");
-       
+
        return UploadProgressResponse.builder()
                .processedCount((int)(successCount + failCount))
                .successCount((int)successCount)
