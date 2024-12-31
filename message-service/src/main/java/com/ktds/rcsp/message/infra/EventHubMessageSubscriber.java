@@ -17,7 +17,9 @@ import jakarta.annotation.PostConstruct;
 @RequiredArgsConstructor
 public class EventHubMessageSubscriber {
 
-    private final EventHubConsumerAsyncClient consumerClient; // 비동기 클라이언트 사용
+    private final EventHubConsumerAsyncClient messageResultConsumerClient;
+    private final EventHubConsumerAsyncClient messageSendConsumerAsyncClient;
+    private final EventHubConsumerAsyncClient messageResultConsumerAsyncClient;
     private final ObjectMapper objectMapper;
     private final MessageService messageService;
     private final RecipientService recipientService;
@@ -30,7 +32,7 @@ public class EventHubMessageSubscriber {
 
     private void startUploadEventSubscription() throws InterruptedException {
         try {
-            consumerClient.receiveFromPartition(
+            messageResultConsumerClient.receiveFromPartition(
                             "0", // 파티션 ID (예시로 "0"을 사용)
                             EventPosition.earliest()
                     )
@@ -56,7 +58,7 @@ public class EventHubMessageSubscriber {
     }
     public void startMessageResultSubscription() throws InterruptedException {
         try {
-            consumerClient.receiveFromPartition(
+            messageSendConsumerAsyncClient.receiveFromPartition(
                             "0", // 파티션 ID
                             EventPosition.latest() // 가장 최신 이벤트부터 수신
                     )

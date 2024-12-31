@@ -20,7 +20,9 @@ import java.util.Collections;
 @RequiredArgsConstructor
 public class EventHubMessagePublisher {
 
-    private final EventHubProducerClient producerClient;
+    private final EventHubProducerClient numberEncryptProducerClient;
+    private final EventHubProducerClient messageSendProducerClient;
+    private final EventHubProducerClient messageResultProducerClient;
     private final ObjectMapper objectMapper;
 
     /**
@@ -33,7 +35,7 @@ public class EventHubMessagePublisher {
         try {
             String eventData = objectMapper.writeValueAsString(event);
             EventData eventDataObj = new EventData(eventData.getBytes());
-            producerClient.send(Collections.singletonList(eventDataObj));
+            numberEncryptProducerClient.send(Collections.singletonList(eventDataObj));
 
             log.info("Published recipient upload event: {}", event.getMessageGroupId());
         } catch (Exception e) {
@@ -46,7 +48,7 @@ public class EventHubMessagePublisher {
         try {
             String eventData = objectMapper.writeValueAsString(event);
             EventData eventDataObj = new EventData(eventData.getBytes());
-            producerClient.send(Collections.singletonList(eventDataObj));
+            messageSendProducerClient.send(Collections.singletonList(eventDataObj));
             log.info("Published message send event: {}", event.getMessageId());
         } catch (Exception e) {
             log.error("Error publishing message send event", e);
