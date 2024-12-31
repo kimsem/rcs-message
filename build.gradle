@@ -1,0 +1,65 @@
+plugins {
+    id 'org.springframework.boot' version '3.2.3'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'java'
+}
+
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled =true
+}
+
+allprojects {
+    apply plugin: 'java'
+    apply plugin: 'jacoco'
+    
+    group = 'com.ktds.rcsp'
+    version = '1.0.0'
+    sourceCompatibility = '17'
+    
+    repositories {
+        mavenCentral()
+    }
+    
+    test {
+        useJUnitPlatform()
+    }
+}
+
+subprojects {
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+    
+    dependencies {
+        // Spring Boot
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+        implementation 'org.springframework.boot:spring-boot-starter-validation'
+        implementation 'org.springframework.boot:spring-boot-starter-actuator'
+        
+        // Swagger
+        implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+        
+        // Database
+        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        runtimeOnly 'org.postgresql:postgresql'
+        
+        // Security
+        implementation 'org.springframework.boot:spring-boot-starter-security'
+        
+        // Cache
+        implementation 'org.springframework.boot:spring-boot-starter-cache'
+        
+        // Lombok
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+        
+        // Testing
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testImplementation 'org.springframework.security:spring-security-test'
+        testImplementation 'org.testcontainers:junit-jupiter'
+        testImplementation 'org.testcontainers:postgresql'
+    }
+}

@@ -1,0 +1,58 @@
+package com.ktds.rcsp.message.infra;
+
+import com.azure.messaging.eventhubs.EventData;
+import com.azure.messaging.eventhubs.EventHubProducerClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ktds.rcsp.common.event.MessageSendEvent;
+import com.ktds.rcsp.common.event.RecipientUploadEvent;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+
+import java.util.Arrays;
+import java.util.List;
+
+@Slf4j
+@Component
+public class EventHubMessagePublisher {
+
+    private final EventHubProducerClient encryptProducerClient;
+    private final EventHubProducerClient sendProducerClient;
+    private final ObjectMapper objectMapper;
+
+    // 생성자 직접 작성
+    public EventHubMessagePublisher(
+            @Qualifier("encryptEventHubProducer") EventHubProducerClient encryptProducerClient,
+            @Qualifier("sendEventHubProducer") EventHubProducerClient sendProducerClient,
+            ObjectMapper objectMapper) {
+        this.encryptProducerClient = encryptProducerClient;
+        this.sendProducerClient = sendProducerClient;
+        this.objectMapper = objectMapper;
+    }
+
+    public void publishMessageSendEvent(MessageSendEvent event) {
+        try {
+            String eventData = objectMapper.writeValueAsString(event);
+            EventData data = new EventData(eventData);
+            sendProducerClient.send(Arrays.asList(data));
+            log.info("Published message send event: {}", event.getMessageId());
+        } catch (Exception e) {
+            log.error("Error publishing message send event", e);
+            throw new RuntimeException("Failed to publish message send event", e);
+        }
+    }
+
+    public void publishUploadEvent(RecipientUploadEvent event) {
+        try {
+            String eventData = objectMapper.writeValueAsString(event);
+            EventData data = new EventData(eventData);
+            List<EventData> events = Arrays.asList(data);
+            encryptProducerClient.send(events);
+            log.info("Published recipient upload event: {}", event.getMessageGroupId());
+        } catch (Exception e) {
+            log.error("Error publishing recipient upload event", e);
+            throw new RuntimeException("Failed to publish recipient upload event", e);
+        }
+    }
+}

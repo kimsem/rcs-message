@@ -1,0 +1,10 @@
+rootProject.name = 'rcs-portal'
+
+// 서브 프로젝트 포함
+include 'common'
+include 'auth-service'
+include 'message-service'
+include 'history-service'
+include 'basedata-service'
+
+

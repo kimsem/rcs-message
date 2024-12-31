@@ -1,0 +1,48 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+bin/
+.settings/
+.classpath
+.project
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Application properties
+application-*.yml
+!application-common.yml
+.env
+
+# Test reports
+**/test-results/
+**/test-reports/
+
+# Spring Boot
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Others
+/design/
+message-service/src/main/resources/application.yml
+*.class
+*.war
+*.ear
+*.jar
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*message-service/src/main/resources/application.yml
+message-service/qodana.yaml

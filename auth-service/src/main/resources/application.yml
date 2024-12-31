@@ -1,0 +1,54 @@
+logging:
+  level:
+    org.springframework.security: TRACE
+    org.springframework.security.web.FilterChainProxy: TRACE
+    org.springframework.security.web.access: TRACE
+    org.springframework.security.web.context: TRACE
+    org.springframework.security.authentication: TRACE
+    org.springframework.web: TRACE
+    org.springframework.thymeleaf: DEBUG
+    org.springframework.mvc: DEBUG
+    com.ktds.rcsp.auth: DEBUG
+
+
+spring:
+  profiles:
+    include : common
+  mvc:
+    static-path-pattern: /static/**
+    view:
+      prefix: classpath:/templates/
+      suffix: .html
+
+  web:
+    resources:
+      add-mappings: false
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration
+
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    check-template-location: true
+    cache: false
+
+  application:
+    name: auth-service
+  datasource:
+    url: ${AUTH_DB_URL}
+    username: ${AUTH_DB_USERNAME}
+    password: ${AUTH_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    
+server:
+  port: 8081
+
+jwt:
+  secret: ${JWT_SECRET:AbCd1234EfGh5678IjKl9012MnOp3456}
+  expiration: 1800000

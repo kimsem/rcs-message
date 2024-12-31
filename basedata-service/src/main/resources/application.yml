@@ -1,0 +1,37 @@
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    com.ktds.rcsp.basedata: DEBUG
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+
+debug : true
+spring:
+  profiles:
+    include: common
+  application:
+    name: basedata-service
+  datasource:
+    url: ${BASEDATA_DB_URL}
+    username: ${BASEDATA_DB_USERNAME}
+    password: ${BASEDATA_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+      dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  jwt:
+    secret: ${JWT_SECRET:your-jwt-secret-key-minimum-32-characters}
+
+server:
+  port: 8084
+

@@ -1,0 +1,44 @@
+spring:
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8081}
+
+  web:
+    resources:
+      static-locations: classpath:/static/
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+    static-path-pattern: /static/**
+
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.ktds.rcsp: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+    # CORS 설정 추가
+cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: Authorization,Content-Type
+    max-age: 3600

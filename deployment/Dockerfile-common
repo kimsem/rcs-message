@@ -1,0 +1,9 @@
+
+#FROM eclipse-temurin:17-jdk-alpine
+#COPY common/build/libs/rcs-common.jar app.jar
+#ENTRYPOINT ["java","-jar","/app.jar"]
+
+FROM openjdk:17-jdk-slim
+WORKDIR /app
+COPY common/build/libs/*.jar app.jar
+ENTRYPOINT ["java","-jar","app.jar"]

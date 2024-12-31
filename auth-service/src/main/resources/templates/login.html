@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Test</title>
+</head>
+<body>
+<script>
+    // 기준정보 조회 함수 추가
+    async function fetchBaseData(token, masterId) {
+        try {
+            // 브랜드 목록 조회
+            const brandResponse = await fetch(`http://localhost:8084/api/base/brands?masterId=${masterId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const brandData = await brandResponse.json();
+
+            if(brandData.status === 200 && brandData.data.length > 0) {
+                // 첫번째 브랜드에 대한 템플릿과 챗봇 정보 조회
+                const brandId = brandData.data[0].brandId;
+
+                // 템플릿 목록 조회
+                const templateResponse = await fetch(`http://localhost:8084/api/base/templates?brandId=${brandId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                // 챗봇(발신번호) 목록 조회
+                const chatbotResponse = await fetch(`http://localhost:8084/api/base/chatbots?brandId=${brandId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                // 조회된 데이터를 세션스토리지에 저장
+                const templateData = await templateResponse.json();
+                const chatbotData = await chatbotResponse.json();
+
+                sessionStorage.setItem('brands', JSON.stringify(brandData.data));
+                sessionStorage.setItem('templates', JSON.stringify(templateData.data));
+                sessionStorage.setItem('chatbots', JSON.stringify(chatbotData.data));
+
+                console.log('Base data fetched successfully');
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error fetching base data:', error);
+            return false;
+        }
+    }
+
+    // 기존 login 함수 수정
+    async function login() {
+        const masterId = document.getElementById('masterId').value;
+        const userId = document.getElementById('userId').value;
+        const password = document.getElementById('password').value;
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    masterId: masterId,
+                    userId: userId,
+                    password: password
+                })
+            });
+
+            const data = await response.json();
+            console.log('Login response:', data);
+
+            if(data.status === 200) {
+                // JWT 토큰을 localStorage에 저장
+                localStorage.setItem('token', data.data.accessToken);
+                console.log('Token saved:', data.data.accessToken);
+
+                // masterId 저장
+                localStorage.setItem('masterId', masterId);
+
+                // 기준정보 조회
+                const baseDataFetched = await fetchBaseData(data.data.accessToken, masterId);
+
+                if(baseDataFetched) {
+                    // home 페이지로 이동
+                    window.location.href = '/home';
+                } else {
+                    alert('기준정보 조회에 실패했습니다.');
+                    window.location.href = '/login?error=true';
+                }
+            } else {
+                alert('로그인 실패: ' + data.message);
+                window.location.href = '/login?error=true';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('로그인 처리 중 오류 발생');
+            window.location.href = '/login?error=true';
+        }
+    }
+
+    // 페이지 로드 시 토큰 체크
+    document.addEventListener('DOMContentLoaded', function() {
+        const token = localStorage.getItem('token');
+        if (token) {
+            // 이미 로그인된 상태면 홈으로 이동
+            window.location.href = '/home';
+        }
+    });
+</script>
+
+<form onsubmit="event.preventDefault(); login();">
+    <div>
+        <label>Master ID:</label>
+        <input type="text" id="masterId" />
+    </div>
+    <div>
+        <label>User ID:</label>
+        <input type="text" id="userId" />
+    </div>
+    <div>
+        <label>Password:</label>
+        <input type="password" id="password" />
+    </div>
+    <button type="submit">Login</button>
+</form>
+</body>
+</html>

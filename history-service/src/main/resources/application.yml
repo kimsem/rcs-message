@@ -1,0 +1,22 @@
+spring:
+  profiles:
+    include: common
+  application:
+    name: history-service
+  datasource:
+    url: ${HISTORY_DB_URL}
+    username: ${HISTORY_DB_USERNAME}
+    password: ${HISTORY_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+
+# JWT 설정 추가
+jwt:
+  secret: ${JWT_SECRET:AbCd1234EfGh5678IjKl9012MnOp3456}  # auth-service와 동일한 값을 사용해야 합니다
+  expiration: 1800000  # 30분
+    
+server:
+  port: 8083

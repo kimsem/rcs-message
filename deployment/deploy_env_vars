@@ -1,0 +1,32 @@
+AUTH_DB_URL=jdbc:postgresql://auth-db:5432/auth_db
+AUTH_DB_USERNAME=auth_user
+AUTH_DB_PASSWORD=auth_password
+MESSAGE_DB_URL=jdbc:postgresql://message-db:5432/message_db
+MESSAGE_DB_USERNAME=message_user
+MESSAGE_DB_PASSWORD=message_password
+HISTORY_DB_URL=jdbc:postgresql://history-db:5432/history_db
+HISTORY_DB_USERNAME=history_user
+HISTORY_DB_PASSWORD=history_password
+BASEDATA_DB_URL=jdbc:postgresql://basedata-db:5432/basedata_db
+BASEDATA_DB_USERNAME=basedata_user
+BASEDATA_DB_PASSWORD=basedata_password
+JWT_SECRET=your-jwt-secret-key
+EVENTHUB_CONNECTION_STRING=your-eventhub-connection-string
+EVENTHUB_NAME=your-eventhub-name
+ENCRYPTION_KEY=your-encryption-key
+MONGODB_URI=mongodb://mongo:27017
+
+# Application Settings
+application_name=rcs-message
+resource_group=tiu-dgga-rg
+location=koreacentral
+
+# Image Settings
+image_org=rcs
+image_credential=acr-credentials
+
+# Resource Settings
+resources_requests_cpu=250m
+resources_requests_memory=512Mi
+resources_limits_cpu=500m
+resources_limits_memory=1024Mi

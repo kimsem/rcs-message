@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${userid}-rcs-common
+  namespace: ${app_namespace}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: common
+      userid: ${userid}
+  template:
+    metadata:
+      labels:
+        app: common
+        userid: ${userid}
+    spec:
+      containers:
+      - name: common
+        image: ${common_image_path}
+        ports:
+        - containerPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${userid}-rcs-auth
+  namespace: ${app_namespace}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-service
+      userid: ${userid}
+  template:
+    metadata:
+      labels:
+        app: auth-service
+        userid: ${userid}
+    spec:
+      containers:
+      - name: auth
+        image: ${auth_image_path}
+        ports:
+        - containerPort: 8081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${userid}-rcs-message
+  namespace: ${app_namespace}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: message-service
+      userid: ${userid}
+  template:
+    metadata:
+      labels:
+        app: message-service
+        userid: ${userid}
+    spec:
+      containers:
+      - name: message
+        image: ${message_image_path}
+        ports:
+        - containerPort: 8082
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${userid}-rcs-history
+  namespace: ${app_namespace}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: history-service
+      userid: ${userid}
+  template:
+    metadata:
+      labels:
+        app: history-service
+        userid: ${userid}
+    spec:
+      containers:
+      - name: history
+        image: ${history_image_path}
+        ports:
+        - containerPort: 8083
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${userid}-rcs-basedata
+  namespace: ${app_namespace}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: basedata-service
+      userid: ${userid}
+  template:
+    metadata:
+      labels:
+        app: basedata-service
+        userid: ${userid}
+    spec:
+      containers:
+      - name: basedata
+        image: ${basedata_image_path}
+        ports:
+        - containerPort: 8084
