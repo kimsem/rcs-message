@@ -6,5 +6,5 @@ package com.ktds.rcsp.common.event;
 public interface MessageEventSubscriber {
     void subscribeToUploadEvents() throws InterruptedException;
     void subscribeToSendEvents();
-    void subscribeToResultEvents();
+    void subscribeToResultEvents() throws InterruptedException;
 }

@@ -32,16 +32,18 @@ public class EventHubMessageSubscriber implements MessageEventSubscriber {
         startUploadEventSubscription();
     }
 
-
+    @PostConstruct
     @Override
     public void subscribeToSendEvents() {
 
     }
 
+    @PostConstruct
     @Override
-    public void subscribeToResultEvents() {
-
+    public void subscribeToResultEvents() throws InterruptedException {
+        startMessageResultSubscription();
     }
+
     private void startUploadEventSubscription() throws InterruptedException {
         try {
             consumerClient.receiveFromPartition(

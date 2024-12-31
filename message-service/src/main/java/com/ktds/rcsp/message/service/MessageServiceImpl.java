@@ -42,7 +42,7 @@ public class MessageServiceImpl implements MessageService {
 
        messageRepository.save(message);
 
-       eventPublisher.publishMessageSendEvent(MessageSendEvent.builder()
+       eventPublisher.publishSendEvent(MessageSendEvent.builder()
                .messageId(message.getMessageId())
                .messageGroupId(message.getMessageGroupId())
                .content(message.getContent())
