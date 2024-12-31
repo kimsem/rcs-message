@@ -24,8 +24,10 @@ server:
 
 azure:
   eventhub:
-    connection-string: ${EVENTHUB_CONNECTION_STRING}
-    name: ${EVENTHUB_NAME}
+    message-send:
+      consumer-group: message-service-group
+    message-result:
+      consumer-group: message-service-group
 
 encryption:
   key: ${ENCRYPTION_KEY}
