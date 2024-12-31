@@ -3,7 +3,6 @@ package com.ktds.rcsp.message.infra;
 import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.EventHubProducerClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ktds.rcsp.common.event.MessageEventPublisher;
 import com.ktds.rcsp.common.event.MessageResultEvent;
 import com.ktds.rcsp.common.event.MessageSendEvent;
 import com.ktds.rcsp.common.event.RecipientUploadEvent;
@@ -12,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
-import java.util.List;
 
 /**
  * Azure Event Hub를 통해 이벤트를 발행하는 Publisher 클래스
@@ -20,7 +18,7 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class EventHubMessagePublisher implements MessageEventPublisher {
+public class EventHubMessagePublisher {
 
     private final EventHubProducerClient producerClient;
     private final ObjectMapper objectMapper;
@@ -44,7 +42,6 @@ public class EventHubMessagePublisher implements MessageEventPublisher {
         }
     }
 
-    @Override
     public void publishSendEvent(MessageSendEvent event) {
         try {
             String eventData = objectMapper.writeValueAsString(event);
@@ -57,7 +54,6 @@ public class EventHubMessagePublisher implements MessageEventPublisher {
         }
     }
 
-    @Override
     public void publishResultEvent(MessageResultEvent event) {
 
     }

@@ -3,23 +3,19 @@ package com.ktds.rcsp.message.infra;
 import com.azure.messaging.eventhubs.*;
 import com.azure.messaging.eventhubs.models.EventPosition;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ktds.rcsp.common.event.MessageEventSubscriber;
 import com.ktds.rcsp.common.event.MessageResultEvent;
 import com.ktds.rcsp.common.event.RecipientUploadEvent;
 import com.ktds.rcsp.message.service.MessageService;
 import com.ktds.rcsp.message.service.RecipientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import jakarta.annotation.PostConstruct;
-
-import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class EventHubMessageSubscriber implements MessageEventSubscriber {
+public class EventHubMessageSubscriber {
 
     private final EventHubConsumerAsyncClient consumerClient; // 비동기 클라이언트 사용
     private final ObjectMapper objectMapper;
@@ -27,20 +23,8 @@ public class EventHubMessageSubscriber implements MessageEventSubscriber {
     private final RecipientService recipientService;
 
     @PostConstruct
-    @Override
-    public void subscribeToUploadEvents() throws InterruptedException {
+    public void subscribe() throws InterruptedException {
         startUploadEventSubscription();
-    }
-
-    @PostConstruct
-    @Override
-    public void subscribeToSendEvents() {
-
-    }
-
-    @PostConstruct
-    @Override
-    public void subscribeToResultEvents() throws InterruptedException {
         startMessageResultSubscription();
     }
 
