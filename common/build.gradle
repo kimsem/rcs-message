@@ -25,4 +25,7 @@ dependencies {
 
     // Database
     implementation 'org.postgresql:postgresql:42.7.2'
+
+    // SLF4J API
+    implementation 'org.slf4j:slf4j-api:2.0.9'
 }
