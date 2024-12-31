@@ -12,33 +12,46 @@ import org.springframework.stereotype.Component;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Azure Event Hub를 통해 이벤트를 발행하는 Publisher 클래스
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class EventHubMessagePublisher {
 
-   private final EventHubProducerClient producerClient;
-   private final ObjectMapper objectMapper;
+    private final EventHubProducerClient producerClient;
+    private final ObjectMapper objectMapper;
 
-   public void publishMessageSendEvent(MessageSendEvent event) {
-       try {
-           String eventData = objectMapper.writeValueAsString(event);
-           producerClient.send(EventData.create(eventData.getBytes()));
-           log.info("Published message send event: {}", event.getMessageId());
-       } catch (Exception e) {
-           log.error("Error publishing message send event", e);
-           throw new RuntimeException("Failed to publish message send event", e);
-       }
-   }
+    /**
+     * 메시지 발송 이벤트를 발행합니다.
+     *
+     * @param event 발행할 메시지 발송 이벤트
+     * @throws RuntimeException 이벤트 발행 실패 시
+     */
+    public void publishMessageSendEvent(MessageSendEvent event) {
+        try {
+            String eventData = objectMapper.writeValueAsString(event);
+            EventData eventDataObj = new EventData(eventData.getBytes());
+            producerClient.send(Collections.singletonList(eventDataObj));
+            log.info("Published message send event: {}", event.getMessageId());
+        } catch (Exception e) {
+            log.error("Error publishing message send event", e);
+            throw new RuntimeException("Failed to publish message send event", e);
+        }
+    }
 
+    /**
+     * 수신자 업로드 이벤트를 발행합니다.
+     *
+     * @param event 발행할 수신자 업로드 이벤트
+     * @throws RuntimeException 이벤트 발행 실패 시
+     */
     public void publishUploadEvent(RecipientUploadEvent event) {
         try {
             String eventData = objectMapper.writeValueAsString(event);
             EventData eventDataObj = new EventData(eventData.getBytes());
-
-            // EventData를 List로 감싸서 전송
-            List<EventData> events = Collections.singletonList(eventDataObj);
-            producerClient.send(events);
+            producerClient.send(Collections.singletonList(eventDataObj));
 
             log.info("Published recipient upload event: {}", event.getMessageGroupId());
         } catch (Exception e) {

@@ -3,8 +3,8 @@ package com.ktds.rcsp.message.service;
 import com.ktds.rcsp.common.event.RecipientUploadEvent;
 import com.ktds.rcsp.message.domain.ProcessingStatus;
 import com.ktds.rcsp.message.domain.Recipient;
-import com.ktds.rcsp.common.infra.EncryptionService;
-import com.ktds.rcsp.common.infra.EventHubMessagePublisher;
+import com.ktds.rcsp.message.infra.EncryptionService;
+import com.ktds.rcsp.message.infra.EventHubMessagePublisher;
 import com.ktds.rcsp.message.repository.RecipientRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,9 +25,9 @@ import java.nio.charset.StandardCharsets;
 @RequiredArgsConstructor
 public class RecipientServiceImpl implements RecipientService {
 
-   private final RecipientRepository recipientRepository;
-   private final EncryptionService encryptionService;
-   private final EventHubMessagePublisher eventPublisher;
+    private final RecipientRepository recipientRepository;
+    private final EncryptionService encryptionService;
+    private final EventHubMessagePublisher eventPublisher;
 
     @Async("recipientProcessorExecutor")
     @Override
@@ -35,7 +35,6 @@ public class RecipientServiceImpl implements RecipientService {
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
 
-            // 최신 CSVFormat 사용 방식
             CSVParser csvParser = CSVFormat.Builder.create()
                     .setHeader()
                     .setIgnoreHeaderCase(true)
@@ -63,23 +62,23 @@ public class RecipientServiceImpl implements RecipientService {
         }
     }
 
-   @Override
-   @Transactional
-   public void encryptAndSaveRecipient(String messageGroupId, String phoneNumber) {
-       try {
-           String encryptedPhoneNumber = encryptionService.encrypt(phoneNumber);
-           
-           Recipient recipient = Recipient.builder()
-                   .messageGroupId(messageGroupId)
-                   .phoneNumber(phoneNumber)
-                   .encryptedPhoneNumber(encryptedPhoneNumber)
-                   .status(ProcessingStatus.COMPLETED)
-                   .build();
+    @Override
+    @Transactional
+    public void encryptAndSaveRecipient(String messageGroupId, String phoneNumber) {
+        try {
+            String encryptedPhoneNumber = encryptionService.encrypt(phoneNumber);
 
-           recipientRepository.save(recipient);
-       } catch (Exception e) {
-           log.error("Failed to encrypt and save recipient", e);
-           throw new RuntimeException("Failed to encrypt and save recipient", e);
-       }
-   }
+            Recipient recipient = Recipient.builder()
+                    .messageGroupId(messageGroupId)
+                    .phoneNumber(phoneNumber)
+                    .encryptedPhoneNumber(encryptedPhoneNumber)
+                    .status(ProcessingStatus.COMPLETED)
+                    .build();
+
+            recipientRepository.save(recipient);
+        } catch (Exception e) {
+            log.error("Failed to encrypt and save recipient", e);
+            throw new RuntimeException("Failed to encrypt and save recipient", e);
+        }
+    }
 }
