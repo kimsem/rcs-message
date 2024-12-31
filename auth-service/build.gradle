@@ -1,3 +1,24 @@
 dependencies {
     implementation project(':common')
+    implementation 'org.postgresql:postgresql:42.7.1'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+}
+
+processResources {
+    from('.') {
+        include 'application.yml'  // application.yml 파일만 포함
+    }
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+tasks.named('processResources') {
+    dependsOn 'compileJava'
+}
+
+tasks.bootJar {
+    enabled = true
+}
+
+tasks.jar {
+    enabled = true
 }
