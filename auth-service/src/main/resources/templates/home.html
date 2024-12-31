@@ -512,7 +512,7 @@ function handleFetchError(response) {
       headers: {
         'Authorization': 'Bearer ' + token
       },
-      credentials: 'include'
+<!--      credentials: 'include'-->
     })
             .then(response => {
               console.log('Upload response status:', response.status); // 추가
@@ -607,7 +607,7 @@ function handleFetchError(response) {
                   resetProgressUI();
                   showError('처리 중 오류 발생: ' + error.message);
               });
-          }, 1000); // 체크 간격을 1초로 수정
+          }, 50); // 체크 간격을 1초로 수정
       }
 
 
@@ -670,9 +670,24 @@ function handleFetchError(response) {
       return;
     }
 
-    const formData = new FormData(this);
-    const progressContainer = document.getElementById('progressContainer');
-    const status = document.getElementById('status');
+   // 필수 값 체크
+   const brandId = document.getElementById('brandSelect').value;
+   const templateId = document.getElementById('templateSelect').value;
+   const chatbotId = document.getElementById('chatbotSelect').value;
+
+   if (!brandId || !templateId || !chatbotId) {
+       alert('브랜드, 템플릿, 발신번호를 모두 선택해주세요.');
+       return;
+   }
+
+   const formData = new FormData(this);
+   formData.append('brandId', brandId);
+   formData.append('templateId', templateId);
+   formData.append('chatbotId', chatbotId);
+
+   const progressContainer = document.getElementById('progressContainer');
+   const status = document.getElementById('status');
+
 
     // 진행 상태 초기화
     progressContainer.style.display = 'block';

@@ -60,7 +60,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     log.info("Token validated successfully. UserId: {}, MasterId: {}", userId, masterId);
 
                     UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(userId, null, new ArrayList<>());
+                            new UsernamePasswordAuthenticationToken(masterId, null, new ArrayList<>());
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                     log.info("Authentication set in SecurityContext");

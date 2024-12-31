@@ -3,11 +3,13 @@ package com.ktds.rcsp.message.controller;
 import com.ktds.rcsp.common.dto.ApiResponse;
 import com.ktds.rcsp.message.dto.UploadProgressResponse;
 import com.ktds.rcsp.message.service.RecipientService;
+import io.jsonwebtoken.Claims;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,12 +26,18 @@ public class RecipientController {
     @Operation(summary = "수신자 정보 업로드", description = "수신자 정보 파일을 업로드합니다")
     public ApiResponse<Void> uploadRecipients(
             @RequestParam String messageGroupId,
+            @RequestParam String brandId,
+            @RequestParam String templateId,
+            @RequestParam String chatbotId,
             @RequestParam("file") MultipartFile file) {
         try {
             log.info("Starting file upload for messageGroupId: {}, filename: {}",
                     messageGroupId, file.getOriginalFilename());
 
-            recipientService.processRecipientFile(messageGroupId, file);
+            String masterId = SecurityContextHolder.getContext()
+                    .getAuthentication().getName();
+
+            recipientService.processRecipientFile(messageGroupId, file, masterId, brandId, templateId, chatbotId);
 
             log.info("File upload initiated successfully for messageGroupId: {}", messageGroupId);
             return ApiResponse.success(null);

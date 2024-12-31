@@ -23,8 +23,8 @@ public class Recipient {
     @Column(name = "encrypted_phone", nullable = false)
     private String encryptedPhone;  // encryptedPhoneNumber에서 변경
 
-    @Column(name = "encrypted_name", nullable = false)
-    private String encryptedName;
+//    @Column(name = "encrypted_name", nullable = false)
+//    private String encryptedName;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "processing_status", nullable = false)
@@ -45,10 +45,12 @@ public class Recipient {
 
 
     @Builder
-    public Recipient(String messageGroupId, String encryptedPhone, String encryptedName, ProcessingStatus status) {
-        this.messageGroupId = messageGroupId;
+//    public Recipient(String messageGroupId, String encryptedPhone, String encryptedName, ProcessingStatus status) {
+    public Recipient(String messageGroupId, String encryptedPhone, ProcessingStatus status) {
+
+            this.messageGroupId = messageGroupId;
         this.encryptedPhone = encryptedPhone;
-        this.encryptedName = encryptedName;
+//        this.encryptedName = encryptedName;
         this.status = status;
         this.createdAt = LocalDateTime.now();
     }

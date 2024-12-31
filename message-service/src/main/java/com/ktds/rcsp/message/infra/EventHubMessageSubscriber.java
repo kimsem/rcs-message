@@ -79,7 +79,7 @@ public class EventHubMessageSubscriber {
                             }
                         }
                     }
-                    Thread.sleep(1000);
+                    Thread.sleep(50);
                 } catch (Exception e) {
                     log.error("Error in encrypt subscription", e);
                     handleSubscriptionError();
@@ -113,7 +113,7 @@ public class EventHubMessageSubscriber {
                             }
                         }
                     }
-                    Thread.sleep(1000);
+                    Thread.sleep(50);
                 } catch (Exception e) {
                     log.error("Error in send subscription", e);
                     handleSubscriptionError();
@@ -162,7 +162,7 @@ public class EventHubMessageSubscriber {
             Recipient recipient = Recipient.builder()
                     .messageGroupId(event.getMessageGroupId())
                     .encryptedPhone(encryptionService.encrypt(event.getPhoneNumber()))
-                    .encryptedName(encryptionService.encrypt(event.getName()))
+//                    .encryptedName(encryptionService.encrypt(event.getName()))
                     .status(ProcessingStatus.COMPLETED)
                     .build();
 
@@ -195,7 +195,7 @@ public class EventHubMessageSubscriber {
 
     private void handleSubscriptionError() {
         try {
-            Thread.sleep(5000);
+            Thread.sleep(100);
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
         }

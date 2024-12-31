@@ -1,15 +1,18 @@
 package com.ktds.rcsp.message.service;
 
 import com.ktds.rcsp.common.event.RecipientUploadEvent;
+import com.ktds.rcsp.message.domain.MessageGroupSummary;
 import com.ktds.rcsp.message.domain.ProcessingStatus;
 import com.ktds.rcsp.message.dto.UploadProgressResponse;
 import com.ktds.rcsp.message.infra.EncryptionService;
 import com.ktds.rcsp.message.infra.EventHubMessagePublisher;
+import com.ktds.rcsp.message.repository.MessageGroupSummaryRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVFormat;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.scheduling.annotation.Async;
@@ -27,6 +30,7 @@ public class RecipientServiceImpl implements RecipientService {
 
     private final EventHubMessagePublisher eventPublisher;
     private final EncryptionService encryptionService;
+    private final MessageGroupSummaryRepository messageGroupSummaryRepository;
 
     // 실시간 처리 상태를 위한 Thread-safe 컬렉션
     private final Map<String, ProcessingStatus> statusMap = new ConcurrentHashMap<>();
@@ -38,20 +42,45 @@ public class RecipientServiceImpl implements RecipientService {
     @Autowired
     public RecipientServiceImpl(
             EventHubMessagePublisher eventPublisher,
-            EncryptionService encryptionService) {  // 생성자 주입 추가
+            EncryptionService encryptionService,
+            MessageGroupSummaryRepository messageGroupSummaryRepository) {  // 생성자 주입 추가
         this.eventPublisher = eventPublisher;
         this.encryptionService = encryptionService;
+        this.messageGroupSummaryRepository = messageGroupSummaryRepository;
     }
 
     @Override
     @Async("recipientProcessorExecutor")
-    public void processRecipientFile(String messageGroupId, MultipartFile file) {
-        String filename = file.getOriginalFilename();
-        if (filename == null) {
-            throw new RuntimeException("파일명이 없습니다.");
-        }
-
+    public void processRecipientFile(String messageGroupId, MultipartFile file, String masterId,
+                                     String brandId, String templateId, String chatbotId) {
         try {
+            // 파일 데이터를 먼저 메모리에 복사
+            byte[] fileBytes = file.getBytes();
+
+            log.info("Start processing file for messageGroupId: {}", messageGroupId);
+
+            // MessageGroupSummary 저장 시도
+            try {
+                MessageGroupSummary messageGroup = MessageGroupSummary.builder()
+                        .messageGroupId(messageGroupId)
+                        .masterId(masterId)
+                        .brandId(brandId)
+                        .templateId(templateId)
+                        .chatbotId(chatbotId)
+                        .totalCount(0)
+                        .processedCount(0)
+                        .status("UPLOADING")
+                        .build();
+
+                messageGroupSummaryRepository.saveAndFlush(messageGroup);
+                log.info("MessageGroupSummary saved successfully: {}", messageGroupId);
+            } catch (Exception e) {
+                log.error("Failed to save MessageGroupSummary: {}", messageGroupId, e);
+                statusMap.put(messageGroupId, ProcessingStatus.FAILED);
+                throw e;
+            }
+
+
             // 초기 상태 설정
             statusMap.put(messageGroupId, ProcessingStatus.UPLOADING);
             totalCountMap.put(messageGroupId, new AtomicInteger(0));
@@ -59,15 +88,20 @@ public class RecipientServiceImpl implements RecipientService {
             successCountMap.put(messageGroupId, new AtomicInteger(0));
             failCountMap.put(messageGroupId, new AtomicInteger(0));
 
-            byte[] fileData = file.getBytes();
+            // 메모리의 byte[] 데이터로 처리
+            try (InputStream is = new ByteArrayInputStream(fileBytes)) {
+                String filename = file.getOriginalFilename();
+                if (filename == null) {
+                    throw new RuntimeException("파일명이 없습니다.");
+                }
 
-            try (InputStream is = new ByteArrayInputStream(fileData)) {
                 if (filename.endsWith(".csv")) {
                     processCsvFile(messageGroupId, is);
                 } else if (filename.endsWith(".xlsx") || filename.endsWith(".xls")) {
                     processExcelFile(messageGroupId, is);
                 }
             }
+
 
             statusMap.put(messageGroupId, ProcessingStatus.COMPLETED);
             log.info("File processing completed for messageGroupId: {}", messageGroupId);
@@ -82,13 +116,20 @@ public class RecipientServiceImpl implements RecipientService {
                 }
             }).start();
 
-        } catch (Exception e) {
-            statusMap.put(messageGroupId, ProcessingStatus.FAILED);
-            log.error("Error processing file for messageGroupId: {}", messageGroupId, e);
+        } catch (
+                Exception e) {
+            updateMessageGroupStatus(messageGroupId, "FAILED");
+            log.error("Failed to process file", e);
             throw new RuntimeException("Failed to process file", e);
         }
     }
 
+    private void updateMessageGroupStatus(String messageGroupId, String status) {
+        MessageGroupSummary messageGroup = messageGroupSummaryRepository.findById(messageGroupId)
+                .orElseThrow(() -> new RuntimeException("Message group not found"));
+        messageGroup.setStatus(status);
+        messageGroupSummaryRepository.save(messageGroup);
+    }
 
     @Override
     public UploadProgressResponse getUploadProgress(String messageGroupId) {
