@@ -36,8 +36,10 @@ subprojects {
         
         // Database
         implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-        runtimeOnly 'org.postgresql:postgresql'
-        
+//        runtimeOnly 'org.postgresql:postgresql'
+        implementation 'org.postgresql:postgresql:42.2.5'  // PostgreSQL JDBC 드라이버
+
+
         // Lombok
         compileOnly 'org.projectlombok:lombok'
         annotationProcessor 'org.projectlombok:lombok'
@@ -45,5 +47,20 @@ subprojects {
         // Testing
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
         testImplementation 'org.testcontainers:postgresql'
+
+        // JJWT (JSON Web Token)
+        implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+        runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+        runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+        // SLF4J API
+        implementation 'org.slf4j:slf4j-api:2.0.9'
+
+        // Logback (SLF4J의 기본 구현체)
+        implementation 'ch.qos.logback:logback-classic:1.4.11'
+
+        // Spring Security
+        implementation 'org.springframework.boot:spring-boot-starter-security'
+
     }
 }
