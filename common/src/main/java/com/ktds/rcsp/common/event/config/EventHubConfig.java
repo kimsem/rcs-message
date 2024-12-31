@@ -2,7 +2,6 @@ package com.ktds.rcsp.common.event.config;
 
 import com.azure.messaging.eventhubs.EventHubClientBuilder;
 import com.azure.messaging.eventhubs.EventHubConsumerAsyncClient;
-import com.azure.messaging.eventhubs.EventHubConsumerClient;
 import com.azure.messaging.eventhubs.EventHubProducerClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -11,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class EventHubConfig {
+
 
    @Value("${azure.eventhub.connection-string}")
    private String connectionString;
@@ -24,9 +24,9 @@ public class EventHubConfig {
    @Value("${azure.eventhub.message-result.name}")
    private String messageResultEventHub;
 
-   // Producer Clients
+
+    // Producer Clients
    @Bean
-   @ConditionalOnProperty(name = "azure.eventhub.number-encrypt.producer.enabled", havingValue = "true")
    public EventHubProducerClient numberEncryptProducerClient() {
       return new EventHubClientBuilder()
               .connectionString(connectionString, numberEncryptEventHub)
@@ -34,7 +34,6 @@ public class EventHubConfig {
    }
 
    @Bean
-   @ConditionalOnProperty(name = "azure.eventhub.message-send.producer.enabled", havingValue = "true")
    public EventHubProducerClient messageSendProducerClient() {
       return new EventHubClientBuilder()
               .connectionString(connectionString, messageSendEventHub)
@@ -42,7 +41,6 @@ public class EventHubConfig {
    }
 
    @Bean
-   @ConditionalOnProperty(name = "azure.eventhub.message-result.producer.enabled", havingValue = "true")
    public EventHubProducerClient messageResultProducerClient() {
       return new EventHubClientBuilder()
               .connectionString(connectionString, messageResultEventHub)
@@ -51,7 +49,6 @@ public class EventHubConfig {
 
    // Async Consumer Clients
    @Bean
-   @ConditionalOnProperty(name = "azure.eventhub.number-encrypt.consumer.enabled", havingValue = "true")
    public EventHubConsumerAsyncClient numberEncryptConsumerAsyncClient() {
       return new EventHubClientBuilder()
               .connectionString(connectionString, numberEncryptEventHub)
@@ -59,22 +56,39 @@ public class EventHubConfig {
               .buildAsyncConsumerClient();
    }
 
-   @Bean
-   @ConditionalOnProperty(name = "azure.eventhub.message-send.consumer.enabled", havingValue = "true")
-   public EventHubConsumerAsyncClient messageSendConsumerAsyncClient(
-           @Value("${azure.eventhub.message-send.consumer-group}") String consumerGroup) {
+
+   @Bean(name = "messageResultMessageConsumer")
+   public EventHubConsumerAsyncClient messageResultConsumerAsyncClientForMessage(
+           @Value("${azure.eventhub.consumer-group.message}") String consumerGroup) {
+      return new EventHubClientBuilder()
+              .connectionString(connectionString, messageResultEventHub)
+              .consumerGroup(consumerGroup)
+              .buildAsyncConsumerClient();
+   }
+
+   @Bean(name = "messageResultHistoryConsumer")
+   public EventHubConsumerAsyncClient messageResultConsumerAsyncClientForHistory(
+           @Value("${azure.eventhub.consumer-group.history}") String consumerGroup) {
+      return new EventHubClientBuilder()
+              .connectionString(connectionString, messageResultEventHub)
+              .consumerGroup(consumerGroup)
+              .buildAsyncConsumerClient();
+   }
+
+   @Bean(name = "messageSendMessageConsumer")
+   public EventHubConsumerAsyncClient messageSendConsumerAsyncClientForMessage(
+           @Value("${azure.eventhub.consumer-group.message}") String consumerGroup) {
       return new EventHubClientBuilder()
               .connectionString(connectionString, messageSendEventHub)
               .consumerGroup(consumerGroup)
               .buildAsyncConsumerClient();
    }
 
-   @Bean
-   @ConditionalOnProperty(name = "azure.eventhub.message-result.consumer.enabled", havingValue = "true")
-   public EventHubConsumerAsyncClient messageResultConsumerAsyncClient(
-           @Value("${azure.eventhub.message-result.consumer-group}") String consumerGroup) {
+   @Bean(name = "messageSendHistoryConsumer")
+   public EventHubConsumerAsyncClient messageSendConsumerAsyncClientForHistory(
+           @Value("${azure.eventhub.consumer-group.history}") String consumerGroup) {
       return new EventHubClientBuilder()
-              .connectionString(connectionString, messageResultEventHub)
+              .connectionString(connectionString, messageSendEventHub)
               .consumerGroup(consumerGroup)
               .buildAsyncConsumerClient();
    }

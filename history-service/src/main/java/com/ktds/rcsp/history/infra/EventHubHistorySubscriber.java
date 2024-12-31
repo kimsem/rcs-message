@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class EventHubHistorySubscriber {
-    private final EventHubConsumerAsyncClient messageSendConsumerAsyncClient;
-    private final EventHubConsumerAsyncClient messageResultConsumerAsyncClient;
+    private final EventHubConsumerAsyncClient messageSendHistoryConsumer;
+    private final EventHubConsumerAsyncClient messageResultHistoryConsumer;
     private final ObjectMapper objectMapper;
     private final HistoryService historyService;
 
