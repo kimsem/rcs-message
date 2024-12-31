@@ -111,14 +111,6 @@ jobs:
 
       - name: Build and Push Container Images
         run: |
-          # Common
-          docker build -f deployment/Dockerfile-common \
-            -t ${{ env.IMAGE_REG }}/${{ env.IMAGE_ORG }}/rcs-common:${{ env.IMAGE_TAG }} \
-            -t ${{ env.IMAGE_REG }}/${{ env.IMAGE_ORG }}/rcs-common:latest .
-          
-          docker push ${{ env.IMAGE_REG }}/${{ env.IMAGE_ORG }}/rcs-common:${{ env.IMAGE_TAG }}
-          docker push ${{ env.IMAGE_REG }}/${{ env.IMAGE_ORG }}/rcs-common:latest
-
           # Auth Service
           docker build -f deployment/Dockerfile-auth \
             -t ${{ env.IMAGE_REG }}/${{ env.IMAGE_ORG }}/rcs-auth:${{ env.IMAGE_TAG }} \
@@ -158,7 +150,6 @@ jobs:
           export db_namespace=${{ env.DB_NAMESPACE }}
           export app_namespace=${{ env.APP_NAMESPACE }}
           export image_tag=${{ env.IMAGE_TAG }}
-          export common_image_path=${{ env.IMAGE_REG }}/${{ env.IMAGE_ORG }}/rcs-common:${{ env.IMAGE_TAG }}
           export auth_image_path=${{ env.IMAGE_REG }}/${{ env.IMAGE_ORG }}/rcs-auth:${{ env.IMAGE_TAG }}
           export message_image_path=${{ env.IMAGE_REG }}/${{ env.IMAGE_ORG }}/rcs-message:${{ env.IMAGE_TAG }}
           export history_image_path=${{ env.IMAGE_REG }}/${{ env.IMAGE_ORG }}/rcs-history:${{ env.IMAGE_TAG }}
@@ -173,7 +164,6 @@ jobs:
           kubectl apply -f deployment/deploy.yaml
 
           # Wait for application pods
-          kubectl wait --for=condition=ready pod -l "app=common,userid=${{ github.event.inputs.USERID }}" -n ${{ env.APP_NAMESPACE }} --timeout=600s || true
           kubectl wait --for=condition=ready pod -l "app=auth-service,userid=${{ github.event.inputs.USERID }}" -n ${{ env.APP_NAMESPACE }} --timeout=600s || true
           kubectl wait --for=condition=ready pod -l "app=message-service,userid=${{ github.event.inputs.USERID }}" -n ${{ env.APP_NAMESPACE }} --timeout=600s || true
           kubectl wait --for=condition=ready pod -l "app=history-service,userid=${{ github.event.inputs.USERID }}" -n ${{ env.APP_NAMESPACE }} --timeout=600s || true
@@ -183,19 +173,17 @@ jobs:
         run: |
           echo "Verifying service endpoints..."
           
-          COMMON_IP=$(kubectl get svc ${{ github.event.inputs.USERID }}-rcs-common -n ${{ env.APP_NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
           AUTH_IP=$(kubectl get svc ${{ github.event.inputs.USERID }}-rcs-auth -n ${{ env.APP_NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
           MESSAGE_IP=$(kubectl get svc ${{ github.event.inputs.USERID }}-rcs-message -n ${{ env.APP_NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
           HISTORY_IP=$(kubectl get svc ${{ github.event.inputs.USERID }}-rcs-history -n ${{ env.APP_NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
           BASEDATA_IP=$(kubectl get svc ${{ github.event.inputs.USERID }}-rcs-basedata -n ${{ env.APP_NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
           
-          echo "Common Service IP: $COMMON_IP"
           echo "Auth Service IP: $AUTH_IP"
           echo "Message Service IP: $MESSAGE_IP"
           echo "History Service IP: $HISTORY_IP"
           echo "Basedata Service IP: $BASEDATA_IP"
           
-          if [ -z "$COMMON_IP" ] || [ -z "$AUTH_IP" ] || [ -z "$MESSAGE_IP" ] || [ -z "$HISTORY_IP" ] || [ -z "$BASEDATA_IP" ]; then
+          if [ -z "$AUTH_IP" ] || [ -z "$MESSAGE_IP" ] || [ -z "$HISTORY_IP" ] || [ -z "$BASEDATA_IP" ]; then
             echo "Error: Service IPs not available"
             exit 1
           fi
