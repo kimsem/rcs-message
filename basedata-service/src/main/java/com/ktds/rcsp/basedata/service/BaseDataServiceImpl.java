@@ -10,7 +10,6 @@ import com.ktds.rcsp.basedata.repository.BrandRepository;
 import com.ktds.rcsp.basedata.repository.TemplateRepository;
 import com.ktds.rcsp.basedata.repository.ChatbotRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +28,6 @@ public class BaseDataServiceImpl implements BaseDataService {
 
    @Override
    @Transactional(readOnly = true)
-   @Cacheable(value = "brands", key = "#masterId")
    public List<BrandResponse> getBrands(String masterId) {
        return brandRepository.findByMasterIdAndStatus(masterId, ACTIVE_STATUS)
                .stream()
@@ -39,7 +37,6 @@ public class BaseDataServiceImpl implements BaseDataService {
 
    @Override
    @Transactional(readOnly = true)
-   @Cacheable(value = "templates", key = "#brandId")
    public List<TemplateResponse> getTemplates(String brandId) {
        return templateRepository.findByBrandIdAndStatus(brandId, ACTIVE_STATUS)
                .stream()
@@ -49,7 +46,6 @@ public class BaseDataServiceImpl implements BaseDataService {
 
    @Override
    @Transactional(readOnly = true)
-   @Cacheable(value = "chatbots", key = "#brandId")
    public List<ChatbotResponse> getChatbots(String brandId) {
        return chatbotRepository.findByBrandIdAndStatus(brandId, ACTIVE_STATUS)
                .stream()
