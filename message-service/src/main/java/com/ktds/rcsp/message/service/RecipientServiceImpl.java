@@ -46,15 +46,21 @@ public class RecipientServiceImpl implements RecipientService {
             int totalCount = 0;
             for (CSVRecord record : csvParser) {
                 String phoneNumber = record.get("phoneNumber");
-                encryptAndSaveRecipient(messageGroupId, phoneNumber);
+
+                // 수신자 정보 처리 후 EventHub에 메시지 발행
+                RecipientUploadEvent event = RecipientUploadEvent.builder()
+                        .messageGroupId(messageGroupId) // 메시지 그룹 ID
+                        .phoneNumber(phoneNumber) // 수신번호
+                        .build();
+
+                // EventHub에 이벤트 발행
+                eventPublisher.publishUploadEvent(event);
                 totalCount++;
             }
 
-            eventPublisher.publishUploadEvent(RecipientUploadEvent.builder()
-                    .messageGroupId(messageGroupId)
-                    .fileName(file.getOriginalFilename())
-                    .totalCount(totalCount)
-                    .build());
+            // 처리된 수신자 수 로깅
+            log.info("Processed {} recipients for message group: {}", totalCount, messageGroupId);
+
 
         } catch (Exception e) {
             log.error("Error processing recipient file", e);
@@ -67,18 +73,24 @@ public class RecipientServiceImpl implements RecipientService {
     public void encryptAndSaveRecipient(String messageGroupId, String phoneNumber) {
         try {
             String encryptedPhoneNumber = encryptionService.encrypt(phoneNumber);
-
-            Recipient recipient = Recipient.builder()
-                    .messageGroupId(messageGroupId)
-                    .phoneNumber(phoneNumber)
-                    .encryptedPhoneNumber(encryptedPhoneNumber)
-                    .status(ProcessingStatus.COMPLETED)
-                    .build();
-
-            recipientRepository.save(recipient);
+            saveRecipient(messageGroupId, encryptedPhoneNumber, ProcessingStatus.COMPLETED, null, null);
         } catch (Exception e) {
             log.error("Failed to encrypt and save recipient", e);
+            saveRecipient(messageGroupId, phoneNumber, ProcessingStatus.FAILED, "20000", "encryption failed");
             throw new RuntimeException("Failed to encrypt and save recipient", e);
         }
+    }
+
+    private void saveRecipient(String messageGroupId, String phoneNumber, ProcessingStatus status, String errorCode, String errorMessage) {
+        Recipient recipient = Recipient.builder()
+                .messageGroupId(messageGroupId)
+                .encryptedPhone(status == ProcessingStatus.COMPLETED ? phoneNumber : null)
+                .status(status)
+                .errorCode(errorCode)
+                .errorMessage(errorMessage)
+                .build();
+
+        recipientRepository.save(recipient);
+
     }
 }
