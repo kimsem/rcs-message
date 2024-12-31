@@ -1,41 +1,40 @@
-package com.ktds.rcsp.auth.domain;
+package com.ktds.rcsp.message.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "message_groups")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class User {
+public class MessageGroup {
     @Id
-    @Column(name = "user_id")
-    private String userId;
+    @Column(name = "message_group_id")
+    private String messageGroupId;
 
     @Column(name = "master_id", nullable = false)
     private String masterId;
 
-    @Column(nullable = false)
-    private String password;
+    @Column(name = "brand_id", nullable = false)
+    private String brandId;
 
-    @Column(nullable = false, length = 20)
-    private String role;
+    @Column(name = "template_id", nullable = false)
+    private String templateId;
 
-    @Column(name = "refresh_token")
-    private String refreshToken;
-
-    @Column(name = "token_expired_at")
-    private LocalDateTime tokenExpiredAt;
+    @Column(name = "chatbot_id", nullable = false)
+    private String chatbotId;
 
     @Column(nullable = false, length = 20)
     private String status;
 
-    @Column(name = "last_login_at")
-    private LocalDateTime lastLoginAt;
+    @Column(name = "total_count")
+    private Integer totalCount;
+
+    @Column(name = "processed_count")
+    private Integer processedCount;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
