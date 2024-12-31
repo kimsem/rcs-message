@@ -63,8 +63,6 @@ subprojects {
         // Logback (SLF4J의 기본 구현체)
         implementation 'ch.qos.logback:logback-classic:1.4.11'
 
-        // Spring Security
-        implementation 'org.springframework.boot:spring-boot-starter-security'
 
     }
 }

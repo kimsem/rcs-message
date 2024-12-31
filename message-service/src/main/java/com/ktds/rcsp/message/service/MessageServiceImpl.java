@@ -1,11 +1,14 @@
 package com.ktds.rcsp.message.service;
 
 import com.ktds.rcsp.common.event.MessageSendEvent;
+import com.ktds.rcsp.common.exception.BusinessException;
 import com.ktds.rcsp.message.domain.Message;
 import com.ktds.rcsp.message.domain.MessageStatus;
+import com.ktds.rcsp.message.domain.Recipient;
 import com.ktds.rcsp.message.dto.MessageSendRequest;
 import com.ktds.rcsp.message.dto.MessageSendResponse;
 import com.ktds.rcsp.message.dto.UploadProgressResponse;
+import com.ktds.rcsp.message.infra.EncryptionService;
 import com.ktds.rcsp.message.infra.EventHubMessagePublisher;
 import com.ktds.rcsp.message.repository.MessageRepository;
 import com.ktds.rcsp.message.repository.RecipientRepository;
@@ -15,7 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -26,31 +31,50 @@ public class MessageServiceImpl implements MessageService {
    private final RecipientRepository recipientRepository;
    private final EventHubMessagePublisher eventPublisher;
    private final RecipientService recipientService;
+   private final EncryptionService encryptionService;
 
    @Override
    @Transactional
    public MessageSendResponse sendMessage(MessageSendRequest request) {
-       Message message = Message.builder()
-               .messageId(UUID.randomUUID().toString())
-               .messageGroupId(request.getMessageGroupId())
-               .brandId(request.getBrandId())
-               .templateId(request.getTemplateId())
-               .chatbotId(request.getChatbotId())
-               .content(request.getContent())
-               .status(MessageStatus.PENDING)
-               .build();
 
-       messageRepository.save(message);
+       List<Recipient> recipients = recipientRepository.findByMessageGroupId(request.getMessageGroupId());
 
-       eventPublisher.publishSendEvent(MessageSendEvent.builder()
-               .messageId(message.getMessageId())
-               .messageGroupId(message.getMessageGroupId())
-               .content(message.getContent())
-               .build());
+       if (recipients.isEmpty()) {
+           throw new BusinessException("메시지 그룹에 수신자가 없습니다.");
+       }
+
+       // 2. 각 수신자별로 메시지 생성 및 처리
+       List<Message> messages = recipients.stream()
+               .map(recipient -> Message.builder()
+                       .messageId(UUID.randomUUID().toString())
+                       .messageGroupId(request.getMessageGroupId())
+                       .recipientId(String.valueOf(recipient.getId()))
+                       .content(request.getContent())
+                       .status(MessageStatus.PENDING)
+                       .build())
+               .toList();
+
+
+       // 3. 메시지들을 Event Hub에 발송 요청 적재
+       messages.forEach(message -> {
+           MessageSendEvent sendEvent = MessageSendEvent.builder()
+                   .messageId(message.getMessageId())
+                   .messageGroupId(message.getMessageGroupId())
+                   .content(message.getContent())
+                   .recipientPhone(encryptionService.decrypt(
+                           recipients.stream()
+                                   .filter(r -> false)
+                                   .findFirst()
+                                   .get()
+                                   .getEncryptedPhoneNumber()
+                   ))
+                   .build();
+           eventPublisher.publishSendEvent(sendEvent);
+       });
 
        return MessageSendResponse.builder()
-               .messageGroupId(message.getMessageGroupId())
-               .status(message.getStatus().name())
+               .messageGroupId(request.getMessageGroupId())
+               .status("SUCCESS")
                .build();
    }
 
