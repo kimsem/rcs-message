@@ -49,45 +49,13 @@ public class EventHubConfig {
               .buildProducerClient();
    }
 
-   // Consumer Clients
-   @Bean
-   @ConditionalOnProperty(name = "azure.eventhub.number-encrypt.consumer.enabled", havingValue = "true")
-   public EventHubConsumerClient numberEncryptConsumerClient(
-           @Value("${azure.eventhub.number-encrypt.consumer-group}") String consumerGroup) {
-      return new EventHubClientBuilder()
-              .connectionString(connectionString, numberEncryptEventHub)
-              .consumerGroup(consumerGroup)
-              .buildConsumerClient();
-   }
-
-   @Bean
-   @ConditionalOnProperty(name = "azure.eventhub.message-send.consumer.enabled", havingValue = "true")
-   public EventHubConsumerClient messageSendConsumerClient(
-           @Value("${azure.eventhub.message-send.consumer-group}") String consumerGroup) {
-      return new EventHubClientBuilder()
-              .connectionString(connectionString, messageSendEventHub)
-              .consumerGroup(consumerGroup)
-              .buildConsumerClient();
-   }
-
-   @Bean
-   @ConditionalOnProperty(name = "azure.eventhub.message-result.consumer.enabled", havingValue = "true")
-   public EventHubConsumerClient messageResultConsumerClient(
-           @Value("${azure.eventhub.message-result.consumer-group}") String consumerGroup) {
-      return new EventHubClientBuilder()
-              .connectionString(connectionString, messageResultEventHub)
-              .consumerGroup(consumerGroup)
-              .buildConsumerClient();
-   }
-
    // Async Consumer Clients
    @Bean
    @ConditionalOnProperty(name = "azure.eventhub.number-encrypt.consumer.enabled", havingValue = "true")
-   public EventHubConsumerAsyncClient numberEncryptConsumerAsyncClient(
-           @Value("${azure.eventhub.number-encrypt.consumer-group}") String consumerGroup) {
+   public EventHubConsumerAsyncClient numberEncryptConsumerAsyncClient() {
       return new EventHubClientBuilder()
               .connectionString(connectionString, numberEncryptEventHub)
-              .consumerGroup(consumerGroup)
+              .consumerGroup(EventHubClientBuilder.DEFAULT_CONSUMER_GROUP_NAME)
               .buildAsyncConsumerClient();
    }
 
