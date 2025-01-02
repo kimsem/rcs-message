@@ -148,7 +148,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: eventhub-secret
-              key: plan-connection-string
+              key: ehub-connection-string
         - name: EVENTHUB_ENCRYPT_NUM_REQ
           value: "number-encrypt-requests"
         - name: EVENTHUB_MESSAGE_SEND_REQ
