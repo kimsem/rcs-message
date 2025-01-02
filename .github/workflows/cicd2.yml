@@ -1,4 +1,4 @@
-name: RCS Application CI/CD
+name: RCS Application CI/CD II
 
 on:
   workflow_dispatch:
