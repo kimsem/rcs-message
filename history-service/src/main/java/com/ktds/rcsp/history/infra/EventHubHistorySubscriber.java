@@ -25,6 +25,7 @@ public class EventHubHistorySubscriber {
     @PostConstruct
     public void subscribe() throws InterruptedException {
         sendMessageSubscription();
+        resultMessageSubscription();
     }
 
     private void sendMessageSubscription() throws InterruptedException {
@@ -53,6 +54,34 @@ public class EventHubHistorySubscriber {
             // 일정 시간 후 재시도
             Thread.sleep(5000);
             sendMessageSubscription();
+        }
+    }
+    private void resultMessageSubscription() throws InterruptedException {
+        try {
+            messageResultHistoryConsumer.receiveFromPartition(
+                            "0", // 파티션 ID
+                            EventPosition.latest() // 가장 최신 이벤트부터 수신
+                    )
+                    .subscribe(partitionEvent -> {
+                        try {
+                            // 이벤트 데이터 처리
+                            EventData eventData = partitionEvent.getData();
+                            String eventBody = eventData.getBodyAsString(); // getBodyAsString() 사용
+                            log.info(eventBody);
+
+                            MessageResultEvent event = objectMapper.readValue(eventBody, MessageResultEvent.class);
+
+                            log.info("Received message result event: {}", event.getMessageId());
+                            historyService.updateMessageStatus(event);
+                        } catch (Exception e) {
+                            log.error("Error processing message result event", e);
+                        }
+                    });
+        } catch (Exception e) {
+            log.error("Error starting event subscription", e);
+            // 일정 시간 후 재시도
+            Thread.sleep(5000);
+            resultMessageSubscription();
         }
     }
 }

@@ -7,7 +7,6 @@ import lombok.Getter;
 
 @Getter
 public class MessageSendEvent extends Event {
-    @JsonProperty("messageId")
     private final String messageId;
     private final String messageGroupId;
     private final String masterId;

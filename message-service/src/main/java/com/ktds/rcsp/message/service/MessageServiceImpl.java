@@ -1,5 +1,6 @@
 package com.ktds.rcsp.message.service;
 
+import com.ktds.rcsp.common.event.MessageResultEvent;
 import com.ktds.rcsp.common.event.MessageSendEvent;
 import com.ktds.rcsp.common.exception.BusinessException;
 import com.ktds.rcsp.message.domain.*;
@@ -106,12 +107,9 @@ public class MessageServiceImpl implements MessageService {
 
    @Override
    @Transactional
-   public void processMessageResult(String messageId, String status) {
-       Message message = messageRepository.findById(messageId)
+   public void processMessageResult(MessageResultEvent event) {
+       Message message = messageRepository.findById(event.getMessageId())
                .orElseThrow(() -> new RuntimeException("Message not found"));
-
-//       message.updateStatus(MessageStatus.valueOf(status));
-//       messageRepository.save(message);
        messageRepository.delete(message); // EventHub에서 결과 적재 받으면 발송DB에서 삭제
    }
 

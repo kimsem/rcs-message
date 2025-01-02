@@ -25,14 +25,4 @@ public class HistoryController {
        return ApiResponse.success(historyService.searchMessages(request));
    }
 
-   @PostMapping("/messages/{messageId}/status")
-   @Operation(summary = "메시지 상태 업데이트", description = "메시지 발송 상태를 업데이트합니다")
-   public ApiResponse<Void> updateMessageStatus(
-           @PathVariable String messageId,
-           @RequestParam String status,
-           @RequestParam(required = false) String resultCode,
-           @RequestParam(required = false) String resultMessage) {
-       historyService.updateMessageStatus(messageId, status, resultCode, resultMessage);
-       return ApiResponse.success(null);
-   }
 }

@@ -28,7 +28,7 @@ public class EventHubMessageSubscriber {
     @PostConstruct
     public void subscribe() throws InterruptedException {
         startUploadEventSubscription();
-        startMessageResultSubscription();
+        messageResultSubscription();
         sendMessageSubscription();
     }
 
@@ -58,7 +58,7 @@ public class EventHubMessageSubscriber {
             startUploadEventSubscription();
         }
     }
-    public void startMessageResultSubscription() throws InterruptedException {
+    public void messageResultSubscription() throws InterruptedException {
         try {
             messageResultMessageConsumer.receiveFromPartition(
                             "0", // 파티션 ID
@@ -72,7 +72,7 @@ public class EventHubMessageSubscriber {
                             MessageResultEvent event = objectMapper.readValue(eventBody, MessageResultEvent.class);
 
                             log.info("Received message result event: {}", event.getMessageId());
-                            messageService.processMessageResult(event.getMessageId(), event.getStatus());
+                            messageService.processMessageResult(event);
                         } catch (Exception e) {
                             log.error("Error processing message result event", e);
                         }
@@ -81,7 +81,7 @@ public class EventHubMessageSubscriber {
             log.error("Error starting event subscription", e);
             // 일정 시간 후 재시도
             Thread.sleep(5000);
-            startMessageResultSubscription();
+            messageResultSubscription();
         }
     }
     public void sendMessageSubscription() throws InterruptedException {

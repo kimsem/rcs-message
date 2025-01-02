@@ -1,6 +1,7 @@
 package com.ktds.rcsp.history.service;
 
 import com.ktds.rcsp.common.dto.PageResponse;
+import com.ktds.rcsp.common.event.MessageResultEvent;
 import com.ktds.rcsp.common.event.MessageSendEvent;
 import com.ktds.rcsp.history.domain.MessageHistory;
 import com.ktds.rcsp.history.domain.MessageStatus;
@@ -14,6 +15,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.Cacheable;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -106,13 +109,13 @@ public class HistoryServiceImpl implements HistoryService {
    }
 
 
-    @Override
+   @Override
    @Transactional
-   public void updateMessageStatus(String messageId, String status, String resultCode, String resultMessage) {
-       MessageHistory history = historyRepository.findById(messageId)
-               .orElseThrow(() -> new RuntimeException("Message history not found: " + messageId));
+   public void updateMessageStatus(MessageResultEvent event) {
+       MessageHistory history = historyRepository.findById(event.getMessageId())
+               .orElseThrow(() -> new RuntimeException("Message history not found: " + event.getMessageId()));
            
-       history.updateStatus(MessageStatus.valueOf(status), resultCode, resultMessage);
+       history.updateStatus(MessageStatus.valueOf(event.getStatus()), event.getResultCode(), event.getResultMessage());
        historyRepository.save(history);
    }
 
@@ -149,6 +152,7 @@ public class HistoryServiceImpl implements HistoryService {
                .content(event.getContent())
                .encryptedPhone(event.getRecipientPhone())
                .status(MessageStatus.valueOf(event.getStatus()))
+               .createdAt(LocalDateTime.now())
                .build();
    }
 }
