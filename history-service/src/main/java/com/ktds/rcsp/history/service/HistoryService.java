@@ -7,6 +7,6 @@ import com.ktds.rcsp.history.dto.MessageHistoryResponse;
 
 public interface HistoryService {
    PageResponse<MessageHistoryResponse> searchMessages(MessageHistorySearchRequest request);
-   MessageHistoryResponse saveMessageHistory(MessageSendEvent event);
+   void saveMessageHistory(MessageSendEvent event);
    void updateMessageStatus(String messageId, String status, String resultCode, String resultMessage);
 }

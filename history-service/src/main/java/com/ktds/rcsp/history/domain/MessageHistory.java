@@ -15,8 +15,6 @@ import java.time.LocalDateTime;
 public class MessageHistory {
 
    @Id
-   private String id;
-
    @Field("message_id")
    @Indexed
    private String messageId;

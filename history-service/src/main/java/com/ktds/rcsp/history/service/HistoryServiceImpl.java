@@ -14,7 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.CacheEvict;
 
 @Service
 @RequiredArgsConstructor
@@ -101,10 +100,9 @@ public class HistoryServiceImpl implements HistoryService {
 
    @Override
    @Transactional
-   public MessageHistoryResponse saveMessageHistory(MessageSendEvent event) {
+   public void saveMessageHistory(MessageSendEvent event) {
        MessageHistory entity = convertToEntity(event);
-       MessageHistory savedEntity = historyRepository.save(entity);
-       return convertToResponse(savedEntity);
+       historyRepository.save(entity);
    }
 
 
@@ -149,6 +147,7 @@ public class HistoryServiceImpl implements HistoryService {
                .templateId(event.getTemplateId())
                .chatbotId(event.getChatbotId())
                .content(event.getContent())
+               .encryptedPhone(event.getRecipientPhone())
                .status(MessageStatus.valueOf(event.getStatus()))
                .build();
    }
