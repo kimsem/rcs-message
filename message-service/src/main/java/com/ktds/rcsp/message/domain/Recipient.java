@@ -22,9 +22,6 @@ public class Recipient {
     @Column(name = "encrypted_phone")
     private String encryptedPhone;
     
-    @Column(name = "encrypted_phone_number", nullable = false)
-    private String encryptedPhoneNumber;
-    
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ProcessingStatus status;

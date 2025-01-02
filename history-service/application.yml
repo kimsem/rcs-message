@@ -8,11 +8,23 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+azure:
+  eventhub:
+    connection-string: ${EVENTHUB_CONNECTION_STRING}
+    number-encrypt:
+      name: ${EVENTHUB_ENCRYPT_NUM_REQ}
+    message-send:
+      name: ${EVENTHUB_MESSAGE_SEND_REQ}
+    message-result:
+      name: ${EVENTHUB_MESSAGE_RESULT_RES}
+    consumer-group:
+      message: message-consumer-group
+      history: history-consumer-group
 server:
   port: 8083

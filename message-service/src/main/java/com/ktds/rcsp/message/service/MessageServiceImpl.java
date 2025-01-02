@@ -66,7 +66,7 @@ public class MessageServiceImpl implements MessageService {
                                    .filter(r -> false)
                                    .findFirst()
                                    .get()
-                                   .getEncryptedPhoneNumber()
+                                   .getEncryptedPhone()
                    ))
                    .build();
            eventPublisher.publishSendEvent(sendEvent);
