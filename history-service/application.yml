@@ -14,13 +14,5 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-
-azure:
-  eventhub:
-    message-send:
-      consumer-group: history-service-group
-    message-result:
-      consumer-group: history-service-group
-    
 server:
   port: 8083

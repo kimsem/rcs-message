@@ -22,12 +22,18 @@ spring:
 server:
   port: 8082
 
-azure:
-  eventhub:
-    message-send:
-      consumer-group: message-service-group
-    message-result:
-      consumer-group: message-service-group
-
 encryption:
   key: ${ENCRYPTION_KEY}
+
+azure:
+  eventhub:
+    connection-string: ${EVENTHUB_CONNECTION_STRING}
+    number-encrypt:
+      name: ${EVENTHUB_ENCRYPT_NUM_REQ}
+    message-send:
+      name: ${EVENTHUB_MESSAGE_SEND_REQ}
+    message-result:
+      name: ${EVENTHUB_MESSAGE_RESULT_RES}
+    consumer-group:
+      message: message-consumer-group
+      history: history-consumer-group

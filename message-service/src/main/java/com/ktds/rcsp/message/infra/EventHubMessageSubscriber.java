@@ -28,6 +28,7 @@ public class EventHubMessageSubscriber {
     public void subscribe() throws InterruptedException {
         startUploadEventSubscription();
         startMessageResultSubscription();
+        sendMessageSubscription();
     }
 
     private void startUploadEventSubscription() throws InterruptedException {
@@ -57,6 +58,32 @@ public class EventHubMessageSubscriber {
         }
     }
     public void startMessageResultSubscription() throws InterruptedException {
+        try {
+            messageSendMessageConsumer.receiveFromPartition(
+                            "0", // 파티션 ID
+                            EventPosition.latest() // 가장 최신 이벤트부터 수신
+                    )
+                    .subscribe(partitionEvent -> {
+                        try {
+                            // 이벤트 데이터 처리
+                            EventData eventData = partitionEvent.getData();
+                            String eventBody = eventData.getBodyAsString(); // getBodyAsString() 사용
+                            MessageResultEvent event = objectMapper.readValue(eventBody, MessageResultEvent.class);
+
+                            log.info("Received message result event: {}", event.getMessageId());
+                            messageService.processMessageResult(event.getMessageId(), event.getStatus());
+                        } catch (Exception e) {
+                            log.error("Error processing message result event", e);
+                        }
+                    });
+        } catch (Exception e) {
+            log.error("Error starting event subscription", e);
+            // 일정 시간 후 재시도
+            Thread.sleep(5000);
+            startMessageResultSubscription();
+        }
+    }
+    public void sendMessageSubscription() throws InterruptedException {
         try {
             messageSendMessageConsumer.receiveFromPartition(
                             "0", // 파티션 ID
