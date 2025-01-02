@@ -19,6 +19,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -116,15 +118,23 @@ public class MessageServiceImpl implements MessageService {
    @Override
    @Transactional(readOnly = true)
    public UploadProgressResponse getUploadProgress(String messageGroupId) {
-       long totalCount = recipientRepository.countByMessageGroup_MessageGroupId(messageGroupId);
-       long successCount = recipientRepository.countByMessageGroup_MessageGroupIdAndStatus(messageGroupId, "COMPLETED");
-       long failCount = recipientRepository.countByMessageGroup_MessageGroupIdAndStatus(messageGroupId, "FAILED");
+
+       List<Object[]> statusCountList = recipientRepository.countByMessageGroup_MessageGroupIdAndStatusGroup(messageGroupId);
+       Map<ProcessingStatus, Long> statusCountMap = statusCountList.stream()
+               .collect(Collectors.toMap(
+                       row -> (ProcessingStatus) row[0], // 첫 번째 값은 상태 (ProcessingStatus)
+                       row -> (Long) row[1] // 두 번째 값은 카운트
+               ));
+       // 각 상태별 count 가져오기
+       long totalCount = statusCountMap.values().stream().mapToLong(Long::longValue).sum();
+       long successCount = statusCountMap.getOrDefault(ProcessingStatus.COMPLETED, 0L);
+       long failCount = statusCountMap.getOrDefault(ProcessingStatus.FAILED, 0L);
 
        return UploadProgressResponse.builder()
-               .processedCount((int)(successCount + failCount))
-               .successCount((int)successCount)
-               .failCount((int)failCount)
-               .totalCount((int)totalCount)
+               .processedCount((int) (successCount + failCount))
+               .successCount((int) successCount)
+               .failCount((int) failCount)
+               .totalCount((int) totalCount)
                .status(totalCount == (successCount + failCount) ? "COMPLETED" : "PROCESSING")
                .build();
    }
