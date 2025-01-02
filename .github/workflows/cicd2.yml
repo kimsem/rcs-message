@@ -94,18 +94,17 @@ jobs:
             echo "Building ${service} service image..."
             
             # Create temporary Dockerfile with corrected paths
-            cat > Dockerfile.${service} << EOF
+            cat > "Dockerfile.${service}" << 'EOF'
             FROM eclipse-temurin:17-jdk-alpine
             COPY ${service}-service/build/libs/${service}-service-*.jar app.jar
             ENTRYPOINT ["java","-jar","/app.jar"]
             EOF
+            docker build -f "Dockerfile.${service}" \
+              -t "${IMAGE_REG}/${IMAGE_ORG}/rcs-${service}:${IMAGE_TAG}" \
+              -t "${IMAGE_REG}/${IMAGE_ORG}/rcs-${service}:latest" .
             
-            docker build -f Dockerfile.${service} \
-              -t ${IMAGE_REG}/${IMAGE_ORG}/rcs-${service}:${IMAGE_TAG} \
-              -t ${IMAGE_REG}/${IMAGE_ORG}/rcs-${service}:latest .
-            
-            docker push ${IMAGE_REG}/${IMAGE_ORG}/rcs-${service}:${IMAGE_TAG}
-            docker push ${IMAGE_REG}/${IMAGE_ORG}/rcs-${service}:latest
+            docker push "${IMAGE_REG}/${IMAGE_ORG}/rcs-${service}:${IMAGE_TAG}"
+            docker push "${IMAGE_REG}/${IMAGE_ORG}/rcs-${service}:latest"
           done
 
   deploy:
