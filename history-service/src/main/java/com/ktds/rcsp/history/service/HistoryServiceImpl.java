@@ -101,7 +101,6 @@ public class HistoryServiceImpl implements HistoryService {
 
    @Override
    @Transactional
-   @CacheEvict(value = "messageHistory", key = "#history.messageId")
    public MessageHistoryResponse saveMessageHistory(MessageSendEvent event) {
        MessageHistory entity = convertToEntity(event);
        MessageHistory savedEntity = historyRepository.save(entity);
@@ -111,7 +110,6 @@ public class HistoryServiceImpl implements HistoryService {
 
     @Override
    @Transactional
-   @CacheEvict(value = "messageHistory", key = "#messageId")
    public void updateMessageStatus(String messageId, String status, String resultCode, String resultMessage) {
        MessageHistory history = historyRepository.findById(messageId)
                .orElseThrow(() -> new RuntimeException("Message history not found: " + messageId));

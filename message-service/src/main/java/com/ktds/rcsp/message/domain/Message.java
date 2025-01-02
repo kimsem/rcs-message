@@ -20,9 +20,8 @@ public class Message {
     @JoinColumn(name = "message_group_id", nullable = false)
     private MessageGroup messageGroup;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "recipient_id", nullable = false)
-    private Recipient recipient;
+    @Column(name = "recipient_id", nullable = false)
+    private String recipientId;
 
     @Column(nullable = false, length = 4000)
     private String content;
@@ -31,7 +30,7 @@ public class Message {
     @Column(nullable = false)
     private MessageStatus status;
     
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")

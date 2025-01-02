@@ -38,6 +38,8 @@ public class EventHubHistorySubscriber {
                             // 이벤트 데이터 처리
                             EventData eventData = partitionEvent.getData();
                             String eventBody = eventData.getBodyAsString(); // getBodyAsString() 사용
+                            log.info(eventBody);
+
                             MessageSendEvent event = objectMapper.readValue(eventBody, MessageSendEvent.class);
 
                             log.info("Received message result event: {}", event.getMessageId());

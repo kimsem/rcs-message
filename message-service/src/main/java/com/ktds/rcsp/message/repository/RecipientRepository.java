@@ -9,8 +9,7 @@ import java.util.List;
 public interface RecipientRepository extends JpaRepository<Recipient, Long> {
    long countByMessageGroup_MessageGroupId(String messageGroupId);
 
-    @Query("SELECT r FROM Recipient r WHERE r.messageGroup.messageGroupId = :messageGroupId")
-    List<Recipient> findByMessageGroupId(String messageGroupId);
+    List<Recipient> findByMessageGroup_MessageGroupId(String messageGroupId);
 
     @Query("SELECT r.status, COUNT(r) FROM Recipient r WHERE r.messageGroup.messageGroupId = :messageGroupId GROUP BY r.status")
     List<Object[]> countByMessageGroup_MessageGroupIdAndStatusGroup(String messageGroupId);

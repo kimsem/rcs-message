@@ -48,7 +48,7 @@ public class MessageServiceImpl implements MessageService {
 
        messageGroupRepository.save(messageGroup);
 
-       List<Recipient> recipients = recipientRepository.findByMessageGroupId(request.getMessageGroupId());
+       List<Recipient> recipients = recipientRepository.findByMessageGroup_MessageGroupId(request.getMessageGroupId());
 
        if (recipients.isEmpty()) {
            throw new BusinessException("메시지 그룹에 수신자가 없습니다.");
@@ -58,8 +58,8 @@ public class MessageServiceImpl implements MessageService {
        List<Message> messages = recipients.stream()
                .map(recipient -> Message.builder()
                        .messageId(UUID.randomUUID().toString())
-                       .messageGroup(messageGroupRepository.findByMessageGroupId((request.getMessageGroupId())))
-                       .recipient(recipient)
+                       .messageGroup(messageGroup)
+                       .recipientId(recipient.getEncryptedPhone())
                        .content(request.getContent())
                        .status(MessageStatus.PENDING)
                        .build())
@@ -69,13 +69,13 @@ public class MessageServiceImpl implements MessageService {
        // 3. 메시지들을 Event Hub에 발송 요청 적재
        messages.forEach(message -> {
            MessageSendEvent sendEvent = MessageSendEvent.builder()
-                   .messageId(message.getMessageId())
-                   .messageGroupId(message.getMessageGroup().getMessageGroupId())
+                   .messageId(UUID.randomUUID().toString())
+                   .messageGroupId(messageGroup.getMessageGroupId())
                    .brandId(message.getMessageGroup().getBrandId())
                    .templateId(message.getMessageGroup().getTemplateId())
                    .chatbotId(message.getMessageGroup().getChatbotId())
                    .content(message.getContent())
-                   .recipientPhone(encryptionService.decrypt(message.getRecipient().getEncryptedPhone()))
+                   .recipientPhone(encryptionService.decrypt(message.getRecipientId()))
                    .status(MessageStatus.PENDING.name())
                    .build();
            eventPublisher.publishSendEvent(sendEvent);
@@ -138,4 +138,34 @@ public class MessageServiceImpl implements MessageService {
                .status(totalCount == (successCount + failCount) ? "COMPLETED" : "PROCESSING")
                .build();
    }
+
+    @Override
+    public void processMessageResultEvent(MessageSendEvent event) {
+        try {
+            MessageGroup messageGroup = messageGroupRepository.findById(event.getMessageGroupId())
+                    .orElseThrow(() -> new BusinessException("Message group not found: " + event.getMessageGroupId()));
+
+            // 1. Message 엔티티 생성
+            Message message = Message.builder()
+                    .messageId(event.getMessageId())
+                    .messageGroup(messageGroup)
+                    .recipientId(encryptionService.encrypt(event.getRecipientPhone()))
+                    .content(event.getContent())
+                    .status(MessageStatus.PENDING)  // 초기 상태
+                    .build();
+
+            // 2. DB 저장
+            message = messageRepository.save(message);
+            log.info("Message saved - messageId: {}, status: {}",
+                    message.getMessageId(), message.getStatus());
+
+        } catch (Exception e) {
+            log.error("Failed to process message send event - messageId: {}",
+                    event.getMessageId(), e);
+
+            // 4. 실패 시 에러 이벤트 발행
+//            publishFailureEvent(event.getMessageId(), e.getMessage());
+            throw new BusinessException("Failed to process message", e);
+        }
+    }
 }
