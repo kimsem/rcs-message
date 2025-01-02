@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: dg4us-rcs-config
-  namespace: ${app_namespace}
+  namespace: rcs-mvp
 data:
   APP_NAME: "rcs"
   SERVER_PORT: "8080"
@@ -45,7 +45,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: dg4us-rcs-auth
-  namespace: ${app_namespace}
+  namespace: rcs-mvp
 spec:
   replicas: 1
   selector:
@@ -76,7 +76,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: dg4us-rcs-auth
-  namespace: ${app_namespace}
+  namespace: rcs-mvp
 spec:
   selector:
     app: auth-service
@@ -90,7 +90,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: dg4us-rcs-basedata
-  namespace: ${app_namespace}
+  namespace: rcs-mvp
 spec:
   replicas: 1
   selector:
@@ -140,7 +140,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: dg4us-rcs-basedata
-  namespace: ${app_namespace}
+  namespace: rcs-mvp
 spec:
   selector:
     app: basedata-service
@@ -154,7 +154,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: dg4us-rcs-history
-  namespace: ${app_namespace}
+  namespace: rcs-mvp
 spec:
   replicas: 1
   selector:
@@ -225,7 +225,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: dg4us-rcs-history
-  namespace: ${app_namespace}
+  namespace: rcs-mvp
 spec:
   selector:
     app: history-service
@@ -239,7 +239,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: dg4us-rcs-message
-  namespace: ${app_namespace}
+  namespace: rcs-mvp
 spec:
   replicas: 1
   selector:
@@ -325,7 +325,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: dg4us-rcs-message
-  namespace: ${app_namespace}
+  namespace: rcs-mvp
 spec:
   selector:
     app: message-service
