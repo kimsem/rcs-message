@@ -165,10 +165,24 @@ jobs:
           IMAGE_ORG: rcs
           DB_NAMESPACE: rcs-mvp
           APP_NAMESPACE: rcs-mvp
+          USERID: ${{ github.event.inputs.USERID }}
         run: |
+          # Set variables for envsubst
+          export auth_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-auth:${IMAGE_TAG}"
+          export message_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-message:${IMAGE_TAG}"
+          export history_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-history:${IMAGE_TAG}"
+          export basedata_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-basedata:${IMAGE_TAG}"
+          export userid="${USERID}"
+          export app_namespace="${APP_NAMESPACE}"
+          
+          # Generate manifest
           envsubst < deployment/deploy.yaml.template > deployment/deploy.yaml
+          
+          # Display for verification
           echo "Generated deployment manifest:"
           cat deployment/deploy.yaml
+          
+          # Apply manifest
           kubectl apply -f deployment/deploy.yaml
 
       - name: Verify Deployment
