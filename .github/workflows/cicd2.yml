@@ -94,12 +94,10 @@ jobs:
           do
             echo "Building ${service} service image..."
             
-            # Create temporary Dockerfile with corrected paths
-            cat << EOF > "Dockerfile.${service}"
-FROM eclipse-temurin:17-jdk-alpine
-COPY ${service}-service/build/libs/${service}-service-*.jar app.jar
-ENTRYPOINT ["java","-jar","/app.jar"]
-EOF
+            # Create Dockerfile content
+            echo "FROM eclipse-temurin:17-jdk-alpine" > "Dockerfile.${service}"
+            echo "COPY ${service}-service/build/libs/${service}-service-*.jar app.jar" >> "Dockerfile.${service}"
+            echo 'ENTRYPOINT ["java","-jar","/app.jar"]' >> "Dockerfile.${service}"
             
             # Build Docker image
             docker build -f "Dockerfile.${service}" \
