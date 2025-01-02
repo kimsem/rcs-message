@@ -2,14 +2,13 @@ package com.ktds.rcsp.message.service;
 
 import com.ktds.rcsp.common.event.MessageSendEvent;
 import com.ktds.rcsp.common.exception.BusinessException;
-import com.ktds.rcsp.message.domain.Message;
-import com.ktds.rcsp.message.domain.MessageStatus;
-import com.ktds.rcsp.message.domain.Recipient;
+import com.ktds.rcsp.message.domain.*;
 import com.ktds.rcsp.message.dto.MessageSendRequest;
 import com.ktds.rcsp.message.dto.MessageSendResponse;
 import com.ktds.rcsp.message.dto.UploadProgressResponse;
 import com.ktds.rcsp.message.infra.EncryptionService;
 import com.ktds.rcsp.message.infra.EventHubMessagePublisher;
+import com.ktds.rcsp.message.repository.MessageGroupRepository;
 import com.ktds.rcsp.message.repository.MessageRepository;
 import com.ktds.rcsp.message.repository.RecipientRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +19,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -29,6 +27,7 @@ public class MessageServiceImpl implements MessageService {
 
    private final MessageRepository messageRepository;
    private final RecipientRepository recipientRepository;
+   private final MessageGroupRepository messageGroupRepository;
    private final EventHubMessagePublisher eventPublisher;
    private final RecipientService recipientService;
    private final EncryptionService encryptionService;
@@ -36,6 +35,16 @@ public class MessageServiceImpl implements MessageService {
    @Override
    @Transactional
    public MessageSendResponse sendMessage(MessageSendRequest request) {
+       // messageGroup update
+       MessageGroup messageGroup = MessageGroup.builder()
+               .messageGroupId(request.getMessageGroupId())
+               .brandId(request.getBrandId())
+               .templateId(request.getTemplateId())
+               .chatbotId(request.getChatbotId())
+               .status(MessageGroupStatus.READY)
+               .build();
+
+       messageGroupRepository.save(messageGroup);
 
        List<Recipient> recipients = recipientRepository.findByMessageGroupId(request.getMessageGroupId());
 
@@ -47,8 +56,8 @@ public class MessageServiceImpl implements MessageService {
        List<Message> messages = recipients.stream()
                .map(recipient -> Message.builder()
                        .messageId(UUID.randomUUID().toString())
-                       .messageGroupId(request.getMessageGroupId())
-                       .recipientId(String.valueOf(recipient.getId()))
+                       .messageGroup(messageGroupRepository.findByMessageGroupId((request.getMessageGroupId())))
+                       .recipient(recipient)
                        .content(request.getContent())
                        .status(MessageStatus.PENDING)
                        .build())
@@ -59,18 +68,12 @@ public class MessageServiceImpl implements MessageService {
        messages.forEach(message -> {
            MessageSendEvent sendEvent = MessageSendEvent.builder()
                    .messageId(message.getMessageId())
-                   .messageGroupId(message.getMessageGroupId())
-                   .brandId(request.getBrandId())
-                   .templateId(request.getTemplateId())
-                   .chatbotId(request.getChatbotId())
+                   .messageGroupId(message.getMessageGroup().getMessageGroupId())
+                   .brandId(message.getMessageGroup().getBrandId())
+                   .templateId(message.getMessageGroup().getTemplateId())
+                   .chatbotId(message.getMessageGroup().getChatbotId())
                    .content(message.getContent())
-                   .recipientPhone(encryptionService.decrypt(
-                           recipients.stream()
-                                   .filter(r -> false)
-                                   .findFirst()
-                                   .get()
-                                   .getEncryptedPhone()
-                   ))
+                   .recipientPhone(encryptionService.decrypt(message.getRecipient().getEncryptedPhone()))
                    .status(MessageStatus.PENDING.name())
                    .build();
            eventPublisher.publishSendEvent(sendEvent);
@@ -86,6 +89,12 @@ public class MessageServiceImpl implements MessageService {
    @Transactional
    public void uploadRecipients(String messageGroupId, MultipartFile file) {
        try {
+           MessageGroup messageGroup = MessageGroup.builder()
+                   .messageGroupId(messageGroupId)
+                   .status(MessageGroupStatus.READY)
+                   .build();
+           messageGroupRepository.save(messageGroup);
+
            recipientService.processRecipientFile(messageGroupId, file);
        } catch (Exception e) {
            log.error("Failed to upload recipients", e);
@@ -107,9 +116,9 @@ public class MessageServiceImpl implements MessageService {
    @Override
    @Transactional(readOnly = true)
    public UploadProgressResponse getUploadProgress(String messageGroupId) {
-       long totalCount = recipientRepository.countByMessageGroupId(messageGroupId);
-       long successCount = recipientRepository.countByMessageGroupIdAndStatus(messageGroupId, "COMPLETED");
-       long failCount = recipientRepository.countByMessageGroupIdAndStatus(messageGroupId, "FAILED");
+       long totalCount = recipientRepository.countByMessageGroup_MessageGroupId(messageGroupId);
+       long successCount = recipientRepository.countByMessageGroup_MessageGroupIdAndStatus(messageGroupId, "COMPLETED");
+       long failCount = recipientRepository.countByMessageGroup_MessageGroupIdAndStatus(messageGroupId, "FAILED");
 
        return UploadProgressResponse.builder()
                .processedCount((int)(successCount + failCount))

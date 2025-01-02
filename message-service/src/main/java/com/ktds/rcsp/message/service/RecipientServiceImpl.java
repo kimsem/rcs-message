@@ -1,10 +1,13 @@
 package com.ktds.rcsp.message.service;
 
 import com.ktds.rcsp.common.event.RecipientUploadEvent;
+import com.ktds.rcsp.message.domain.MessageGroup;
+import com.ktds.rcsp.message.domain.MessageGroupStatus;
 import com.ktds.rcsp.message.domain.ProcessingStatus;
 import com.ktds.rcsp.message.domain.Recipient;
 import com.ktds.rcsp.message.infra.EncryptionService;
 import com.ktds.rcsp.message.infra.EventHubMessagePublisher;
+import com.ktds.rcsp.message.repository.MessageGroupRepository;
 import com.ktds.rcsp.message.repository.RecipientRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 public class RecipientServiceImpl implements RecipientService {
 
     private final RecipientRepository recipientRepository;
+    private final MessageGroupRepository messageGroupRepository;
     private final EncryptionService encryptionService;
     private final EventHubMessagePublisher eventPublisher;
 
@@ -61,7 +65,6 @@ public class RecipientServiceImpl implements RecipientService {
             // 처리된 수신자 수 로깅
             log.info("Processed {} recipients for message group: {}", totalCount, messageGroupId);
 
-
         } catch (Exception e) {
             log.error("Error processing recipient file", e);
             throw new RuntimeException("Failed to process recipient file", e);
@@ -82,8 +85,11 @@ public class RecipientServiceImpl implements RecipientService {
     }
 
     private void saveRecipient(String messageGroupId, String phoneNumber, ProcessingStatus status, String errorCode, String errorMessage) {
+        MessageGroup messageGroup = messageGroupRepository.findById(messageGroupId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid messageGroupId: " + messageGroupId));
+
         Recipient recipient = Recipient.builder()
-                .messageGroupId(messageGroupId)
+                .messageGroup(messageGroup)
                 .encryptedPhone(status == ProcessingStatus.COMPLETED ? phoneNumber : null)
                 .status(status)
                 .errorCode(errorCode)

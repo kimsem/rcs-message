@@ -15,9 +15,10 @@ public class Recipient {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    @Column(name = "message_group_id", nullable = false)
-    private String messageGroupId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "message_group_id", nullable = false)
+    private MessageGroup messageGroup;
     
     @Column(name = "encrypted_phone")
     private String encryptedPhone;

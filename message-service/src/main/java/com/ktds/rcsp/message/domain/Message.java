@@ -16,11 +16,13 @@ public class Message {
     @Column(name = "message_id")
     private String messageId;
 
-    @Column(name = "message_group_id", nullable = false)
-    private String messageGroupId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "message_group_id", nullable = false)
+    private MessageGroup messageGroup;
 
-    @Column(name = "recipient_id", nullable = false)
-    private String recipientId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recipient_id", nullable = false)
+    private Recipient recipient;
 
     @Column(nullable = false, length = 4000)
     private String content;

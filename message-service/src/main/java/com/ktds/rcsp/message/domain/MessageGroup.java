@@ -15,20 +15,21 @@ public class MessageGroup {
     @Column(name = "message_group_id")
     private String messageGroupId;
 
-    @Column(name = "master_id", nullable = false)
+    @Column(name = "master_id")
     private String masterId;
 
-    @Column(name = "brand_id", nullable = false)
+    @Column(name = "brand_id")
     private String brandId;
 
-    @Column(name = "template_id", nullable = false)
+    @Column(name = "template_id")
     private String templateId;
 
-    @Column(name = "chatbot_id", nullable = false)
+    @Column(name = "chatbot_id")
     private String chatbotId;
 
-    @Column(nullable = false, length = 20)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MessageGroupStatus status;
 
     @Column(name = "total_count")
     private Integer totalCount;
