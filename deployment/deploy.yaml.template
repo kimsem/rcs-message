@@ -8,36 +8,37 @@ data:
   SERVER_PORT: "8080"
 
   #Message_DB
-  MESSAGE_DB_URL=jdbc:postgresql://10.0.215.208:5432/rcs-message-db
-  MESSAGE_DB_USERNAME=dg4s
-  MESSAGE_DB_PASSWORD=p@ssw0rd!@
+  MESSAGE_DB_URL: "jdbc:postgresql://10.0.215.208:5432/rcs-message-db"
+  MESSAGE_DB_USERNAME: "dg4s"
+  MESSAGE_DB_PASSWORD: "p@ssw0rd!@"
   #BASEDATA_DB
-  BASEDATA_DB_URL=jdbc:postgresql://10.0.43.236:5432/rcs-base-db
-  MESSAGE_DB_USERNAME=dg4s
-  MESSAGE_DB_PASSWORD=p@ssw0rd!@
+  BASEDATA_DB_URL:jdbc: "postgresql://10.0.43.236:5432/rcs-base-db"
+  BASEDATA_DB_USERNAME: "dg4s"
+  BASEDATA_DB_PASSWORD: "p@ssw0rd!@"
   #AUTH_DB
-  BASEDATA_DB_URL=jdbc:postgresql://10.0.195.172:5432/rcs-auth-db
-  MESSAGE_DB_USERNAME=dg4s
-  MESSAGE_DB_PASSWORD=p@ssw0rd!@
+  AUTH_DB_URL:jdbc: "postgresql://10.0.195.172:5432/rcs-auth-db"
+  AUTH_DB_USERNAME: "dg4s"
+  AUTH_DB_PASSWORD: "p@ssw0rd!@"
   #MONGO_DB
-  MONGODB_URI=mongodb+srv://dg4us-mongo.mongocluster.cosmos.azure.com/
-  MONGODB_DB_USERNAME=dg4sadm
-  MONGODB_DB_PASSWORD=p@ssw0rd!@
-  MONGODB_DATABASE=rcs-history-db
+  MONGODB_URI: "mongodb+srv://dg4us-mongo.mongocluster.cosmos.azure.com/"
+  MONGODB_DB_USERNAME: "dg4sadm"
+  MONGODB_DB_PASSWORD: "p@ssw0rd!@"
+  MONGODB_DATABASE: "rcs-history-db"
     
   # JPA 설정
   JPA_DDL_AUTO: "update"
   JPA_SHOW_SQL: "true"
 
   #EVENTHUB
-  EVENTHUB_CONNECTION_STRING=Endpoint=sb://dg4us-eventhub-ns.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=ABUzYkX9Ca3F3Xo4b6bi0Mf+HuqRA12qA+AEhCsri3A=
+  EVENTHUB_CONNECTION_STRING: "Endpoint=sb://dg4us-eventhub-ns.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=ABUzYkX9Ca3F3Xo4b6bi0Mf+HuqRA12qA+AEhCsri3A="
   # 수신번호 암호화 요청 큐
-  EVENTHUB_ENCRYPT_NUM_REQ=number-encrypt-requests
+  EVENTHUB_ENCRYPT_NUM_REQ: "number-encrypt-requests"
   # 메시지 발송 요청 큐
-  EVENTHUB_MESSAGE_SEND_REQ=rcs-message-send
+  EVENTHUB_MESSAGE_SEND_REQ: "rcs-message-send"
   # 메시지 수신결과 응답 큐
-  EVENTHUB_MESSAGE_RESULT_RES=rcs-message-result
-  # 미사용 ENCRYPTION_KEY=your_encryption_key 
+  EVENTHUB_MESSAGE_RESULT_RES: "rcs-message-result"
+  # 미사용 
+  ENCRYPTION_KEY: "your_encryption_key" 
   
 ---
 apiVersion: apps/v1
