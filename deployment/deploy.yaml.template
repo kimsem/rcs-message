@@ -31,6 +31,17 @@ data:
   JPA_DDL_AUTO: "update"
   JPA_SHOW_SQL: "true"
 
+  #EVENTHUB
+  EVENTHUB_CONNECTION_STRING: "Endpoint=sb://dg4us-eventhub-ns.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=ABUzYkX9Ca3F3Xo4b6bi0Mf+HuqRA12qA+AEhCsri3A="
+  # 수신번호 암호화 요청 큐
+  EVENTHUB_ENCRYPT_NUM_REQ: "number-encrypt-requests"
+  # 메시지 발송 요청 큐
+  EVENTHUB_MESSAGE_SEND_REQ: "rcs-message-send"
+  # 메시지 수신결과 응답 큐
+  EVENTHUB_MESSAGE_RESULT_RES: "rcs-message-result"
+  # 미사용 
+  ENCRYPTION_KEY: "your_encryption_key" 
+
 ---
 # Auth Service Deployment
 apiVersion: apps/v1
@@ -70,6 +81,17 @@ spec:
             secretKeyRef:
               name: ${userid}-db-credentials
               key: AUTH_DB_PASSWORD
+		- name: EVENTHUB_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: eventhub-secret
+              key: ehub-connection-string
+        - name: EVENTHUB_ENCRYPT_NUM_REQ
+          value: "number-encrypt-requests"
+        - name: EVENTHUB_MESSAGE_SEND_REQ
+          value: "rcs-message-send"
+        - name: EVENTHUB_MESSAGE_RESULT_RES
+          value: "rcs-message-result"
         resources:
           requests:
             cpu: 250m
@@ -88,6 +110,154 @@ metadata:
 spec:
   selector:
     app: auth-service
+    userid: ${userid}
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: LoadBalancer
+  
+---
+# BASEDATA Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${userid}-rcs-basedata
+  namespace: ${app_namespace}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: basedata-service
+      userid: ${userid}
+  template:
+    metadata:
+      labels:
+        app: basedata-service
+        userid: ${userid}
+    spec:
+      containers:
+      - name: basedata-service
+        image: ${message_image_path}
+        imagePullPolicy: Always
+        env:
+        - name: BASEDATA_DB_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: BASEDATA_DB_URL
+        - name: BASEDATA_DB_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: BASEDATA_DB_USERNAME
+        - name: BASEDATA_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ${userid}-db-credentials
+              key: BASEDATA_DB_PASSWORD
+        - name: EVENTHUB_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: eventhub-secret
+              key: ehub-connection-string
+        - name: EVENTHUB_ENCRYPT_NUM_REQ
+          value: "number-encrypt-requests"
+        - name: EVENTHUB_MESSAGE_SEND_REQ
+          value: "rcs-message-send"
+        - name: EVENTHUB_MESSAGE_RESULT_RES
+          value: "rcs-message-result"
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 1024Mi
+
+---
+# BASEDATA Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${userid}-rcs-basedata
+  namespace: ${app_namespace}
+spec:
+  selector:
+    app: basedata-service
+    userid: ${userid}
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: LoadBalancer
+  
+---
+# HISTORY Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${userid}-rcs-history
+  namespace: ${app_namespace}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: history-service
+      userid: ${userid}
+  template:
+    metadata:
+      labels:
+        app: history-service
+        userid: ${userid}
+    spec:
+      containers:
+      - name: history-service
+        image: ${history_image_path}
+        imagePullPolicy: Always
+        env:
+        - name: HISTORY_DB_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: HISTORY_DB_URL
+        - name: HISTORY_DB_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: HISTORY_DB_USERNAME
+        - name: HISTORY_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ${userid}-db-credentials
+              key: HISTORY_DB_PASSWORD
+        - name: EVENTHUB_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: eventhub-secret
+              key: ehub-connection-string
+        - name: EVENTHUB_ENCRYPT_NUM_REQ
+          value: "number-encrypt-requests"
+        - name: EVENTHUB_MESSAGE_SEND_REQ
+          value: "rcs-message-send"
+        - name: EVENTHUB_MESSAGE_RESULT_RES
+          value: "rcs-message-result"
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 1024Mi
+
+---
+# History Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${userid}-rcs-history
+  namespace: ${app_namespace}
+spec:
+  selector:
+    app: history-service
     userid: ${userid}
   ports:
     - port: 8080
@@ -137,7 +307,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: eventhub-secret
-              key: plan-connection-string
+              key: ehub-connection-string
         - name: EVENTHUB_ENCRYPT_NUM_REQ
           value: "number-encrypt-requests"
         - name: EVENTHUB_MESSAGE_SEND_REQ

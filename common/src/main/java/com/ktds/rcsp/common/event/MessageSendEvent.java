@@ -1,5 +1,7 @@
 package com.ktds.rcsp.common.event;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -15,8 +17,17 @@ public class MessageSendEvent extends Event {
     private final String content;
     private final String status;
 
+
     @Builder
-    public MessageSendEvent(String messageId, String messageGroupId, String masterId, String brandId, String templateId, String chatbotId, String content, String recipientPhone, String status) {
+    public MessageSendEvent(@JsonProperty("messageId") String messageId,
+                            @JsonProperty("messageGroupId") String messageGroupId,
+                            @JsonProperty("masterId") String masterId,
+                            @JsonProperty("brandId") String brandId,
+                            @JsonProperty("templateId") String templateId,
+                            @JsonProperty("chatbotId") String chatbotId,
+                            @JsonProperty("recipientPhone") String recipientPhone,
+                            @JsonProperty("content") String content,
+                            @JsonProperty("status") String status) {
         super(EventType.MESSAGE_SEND);
         this.messageId = messageId;
         this.messageGroupId = messageGroupId;
@@ -24,8 +35,8 @@ public class MessageSendEvent extends Event {
         this.brandId = brandId;
         this.templateId = templateId;
         this.chatbotId = chatbotId;
-        this.content = content;
         this.recipientPhone = recipientPhone;
+        this.content = content;
         this.status = status;
     }
 

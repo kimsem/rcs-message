@@ -4,6 +4,7 @@ import com.azure.messaging.eventhubs.*;
 import com.azure.messaging.eventhubs.models.EventPosition;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ktds.rcsp.common.event.MessageResultEvent;
+import com.ktds.rcsp.common.event.MessageSendEvent;
 import com.ktds.rcsp.common.event.RecipientUploadEvent;
 import com.ktds.rcsp.message.service.MessageService;
 import com.ktds.rcsp.message.service.RecipientService;
@@ -27,7 +28,7 @@ public class EventHubMessageSubscriber {
     @PostConstruct
     public void subscribe() throws InterruptedException {
         startUploadEventSubscription();
-        startMessageResultSubscription();
+        messageResultSubscription();
         sendMessageSubscription();
     }
 
@@ -35,7 +36,7 @@ public class EventHubMessageSubscriber {
         try {
             numberEncryptConsumerAsyncClient.receiveFromPartition(
                             "0", // 파티션 ID (예시로 "0"을 사용)
-                            EventPosition.earliest()
+                            EventPosition.latest()
                     )
                     .subscribe(partitionEvent -> {
                         try {
@@ -57,9 +58,9 @@ public class EventHubMessageSubscriber {
             startUploadEventSubscription();
         }
     }
-    public void startMessageResultSubscription() throws InterruptedException {
+    public void messageResultSubscription() throws InterruptedException {
         try {
-            messageSendMessageConsumer.receiveFromPartition(
+            messageResultMessageConsumer.receiveFromPartition(
                             "0", // 파티션 ID
                             EventPosition.latest() // 가장 최신 이벤트부터 수신
                     )
@@ -71,7 +72,7 @@ public class EventHubMessageSubscriber {
                             MessageResultEvent event = objectMapper.readValue(eventBody, MessageResultEvent.class);
 
                             log.info("Received message result event: {}", event.getMessageId());
-                            messageService.processMessageResult(event.getMessageId(), event.getStatus());
+                            messageService.processMessageResult(event);
                         } catch (Exception e) {
                             log.error("Error processing message result event", e);
                         }
@@ -80,7 +81,7 @@ public class EventHubMessageSubscriber {
             log.error("Error starting event subscription", e);
             // 일정 시간 후 재시도
             Thread.sleep(5000);
-            startMessageResultSubscription();
+            messageResultSubscription();
         }
     }
     public void sendMessageSubscription() throws InterruptedException {
@@ -94,10 +95,10 @@ public class EventHubMessageSubscriber {
                             // 이벤트 데이터 처리
                             EventData eventData = partitionEvent.getData();
                             String eventBody = eventData.getBodyAsString(); // getBodyAsString() 사용
-                            MessageResultEvent event = objectMapper.readValue(eventBody, MessageResultEvent.class);
+                            MessageSendEvent event = objectMapper.readValue(eventBody, MessageSendEvent.class);
 
                             log.info("Received message result event: {}", event.getMessageId());
-                            messageService.processMessageResult(event.getMessageId(), event.getStatus());
+                            messageService.processMessageResultEvent(event);
                         } catch (Exception e) {
                             log.error("Error processing message result event", e);
                         }
@@ -106,7 +107,7 @@ public class EventHubMessageSubscriber {
             log.error("Error starting event subscription", e);
             // 일정 시간 후 재시도
             Thread.sleep(5000);
-            startMessageResultSubscription();
+            sendMessageSubscription();
         }
     }
 
