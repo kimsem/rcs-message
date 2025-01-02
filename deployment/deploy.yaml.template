@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ${userid}-rcs-config
+  name: dg4us-rcs-config
   namespace: ${app_namespace}
 data:
   APP_NAME: "rcs"
@@ -44,19 +44,19 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ${userid}-rcs-auth
+  name: dg4us-rcs-auth
   namespace: ${app_namespace}
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: auth-service
-      userid: ${userid}
+      userid: dg4us
   template:
     metadata:
       labels:
         app: auth-service
-        userid: ${userid}
+        userid: dg4us
     spec:
       containers:
       - name: auth-service
@@ -75,12 +75,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ${userid}-rcs-auth
+  name: dg4us-rcs-auth
   namespace: ${app_namespace}
 spec:
   selector:
     app: auth-service
-    userid: ${userid}
+    userid: dg4us
   ports:
   - port: 8080
     targetPort: 8080
@@ -89,19 +89,19 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ${userid}-rcs-basedata
+  name: dg4us-rcs-basedata
   namespace: ${app_namespace}
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: basedata-service
-      userid: ${userid}
+      userid: dg4us
   template:
     metadata:
       labels:
         app: basedata-service
-        userid: ${userid}
+        userid: dg4us
     spec:
       containers:
       - name: basedata-service
@@ -111,22 +111,22 @@ spec:
         - containerPort: 8080
         envFrom:
         - configMapRef:
-            name: ${userid}-rcs-config
+            name: dg4us-rcs-config
         env:
 		- name: BASEDATA_DB_URL
             valueFrom: 
               configMapKeyRef:
-                 name: ${userid}-rcs-config
+                 name: dg4us-rcs-config
                  key: BASEDATA_DB_URL
 		- name: BASEDATA_DB_USERNAME
             valueFrom: 
               configMapKeyRef:
-                 name: ${userid}-rcs-config
+                 name: dg4us-rcs-config
                  key: BASEDATA_DB_USERNAME
         - name: BASEDATA_DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: ${userid}-db-credentials
+              name: dg4us-db-credentials
               key: BASEDATA_DB_PASSWORD
         resources:
           requests:
@@ -139,12 +139,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ${userid}-rcs-basedata
+  name: dg4us-rcs-basedata
   namespace: ${app_namespace}
 spec:
   selector:
     app: basedata-service
-    userid: ${userid}
+    userid: dg4us
   ports:
   - port: 8080
     targetPort: 8080
@@ -153,19 +153,19 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ${userid}-rcs-history
+  name: dg4us-rcs-history
   namespace: ${app_namespace}
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: history-service
-      userid: ${userid}
+      userid: dg4us
   template:
     metadata:
       labels:
         app: history-service
-        userid: ${userid}
+        userid: dg4us
     spec:
       containers:
       - name: history-service
@@ -175,27 +175,27 @@ spec:
         - containerPort: 8080
         envFrom:
         - configMapRef:
-            name: ${userid}-rcs-config
+            name: dg4us-rcs-config
         env:
 		- name: MONGODB_URI
             valueFrom: 
               configMapKeyRef:
-                 name: ${userid}-rcs-config
+                 name: dg4us-rcs-config
                  key: MONGODB_URI
 		- name: MONGODB_DATABASE
             valueFrom: 
               configMapKeyRef:
-                 name: ${userid}-rcs-config
+                 name: dg4us-rcs-config
                  key: MONGODB_DATABASE
         - name: MONGODB_DB_USERNAME
             valueFrom: 
               configMapKeyRef:
-                 name: ${userid}-rcs-config
+                 name: dg4us-rcs-config
                  key: MONGODB_DB_USERNAME
         - name: MONGODB_DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: ${userid}-db-credentials
+              name: dg4us-db-credentials
               key: MONGODB_DB_PASSWORD
         - name: STORAGE_CONNECTION_STRING
           valueFrom:
@@ -224,12 +224,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ${userid}-rcs-history
+  name: dg4us-rcs-history
   namespace: ${app_namespace}
 spec:
   selector:
     app: history-service
-    userid: ${userid}
+    userid: dg4us
   ports:
   - port: 8080
     targetPort: 8080
@@ -238,19 +238,19 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ${userid}-rcs-message
+  name: dg4us-rcs-message
   namespace: ${app_namespace}
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: message-service
-      userid: ${userid}
+      userid: dg4us
   template:
     metadata:
       labels:
         app: message-service
-        userid: ${userid}
+        userid: dg4us
     spec:
       containers:
       - name: message-service
@@ -260,42 +260,42 @@ spec:
         - containerPort: 8080
         envFrom:
         - configMapRef:
-            name: ${userid}-rcs-config
+            name: dg4us-rcs-config
         env:
 		- name: MESSAGE_DB_URL
             valueFrom: 
               configMapKeyRef:
-                 name: ${userid}-rcs-config
+                 name: dg4us-rcs-config
                  key: MESSAGE_DB_URL
 		- name: MESSAGE_DB_USERNAME
             valueFrom: 
               configMapKeyRef:
-                 name: ${userid}-rcs-config
+                 name: dg4us-rcs-config
                  key: MESSAGE_DB_USERNAME
         - name: MESSAGE_DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: ${userid}-db-credentials
+              name: dg4us-db-credentials
               key: MESSAGE_DB_PASSWORD
 		- name: MONGODB_URI
             valueFrom: 
               configMapKeyRef:
-                 name: ${userid}-rcs-config
+                 name: dg4us-rcs-config
                  key: MONGODB_URI
 		- name: MONGODB_DATABASE
             valueFrom: 
               configMapKeyRef:
-                 name: ${userid}-rcs-config
+                 name: dg4us-rcs-config
                  key: MONGODB_DATABASE
         - name: MONGODB_DB_USERNAME
             valueFrom: 
               configMapKeyRef:
-                 name: ${userid}-rcs-config
+                 name: dg4us-rcs-config
                  key: MONGODB_DB_USERNAME
         - name: MONGODB_DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: ${userid}-db-credentials
+              name: dg4us-db-credentials
               key: MONGODB_DB_PASSWORD
         - name: STORAGE_CONNECTION_STRING
           valueFrom:
@@ -324,12 +324,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ${userid}-rcs-message
+  name: dg4us-rcs-message
   namespace: ${app_namespace}
 spec:
   selector:
     app: message-service
-    userid: ${userid}
+    userid: dg4us
   ports:
   - port: 8080
     targetPort: 8080
