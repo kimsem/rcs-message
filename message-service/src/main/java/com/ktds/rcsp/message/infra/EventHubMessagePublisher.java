@@ -22,7 +22,6 @@ public class EventHubMessagePublisher {
 
     private final EventHubProducerClient numberEncryptProducerClient;
     private final EventHubProducerClient messageSendProducerClient;
-    private final EventHubProducerClient messageResultProducerClient;
     private final ObjectMapper objectMapper;
 
     /**

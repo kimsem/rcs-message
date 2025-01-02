@@ -1,58 +1,72 @@
 package com.ktds.rcsp.history.domain;
 
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "message_history")
+@Document(collection = "message_history")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class MessageHistory {
-   
+
    @Id
+   private String id;
+
+   @Field("message_id")
+   @Indexed
    private String messageId;
-   
-   @Column(name = "message_group_id", nullable = false)
+
+   @Field("message_group_id")
+   @Indexed
    private String messageGroupId;
-   
-   @Column(name = "master_id", nullable = false)
+
+   @Field("master_id")
+   @Indexed
    private String masterId;
-   
-   @Column(name = "brand_id", nullable = false)
+
+   @Field("brand_id")
+   @Indexed
    private String brandId;
-   
-   @Column(name = "template_id", nullable = false)
+
+   @Field("template_id")
    private String templateId;
-   
-   @Column(name = "chatbot_id", nullable = false)
+
+   @Field("chatbot_id")
+   @Indexed
    private String chatbotId;
-   
-   @Column(nullable = false, length = 4000)
+
+   @Field("encrypted_phone")
+   private String encryptedPhone;
+
+   @Field("content")
    private String content;
-   
-   @Enumerated(EnumType.STRING)
-   @Column(nullable = false)
+
+   @Field("status")
+   @Indexed
    private MessageStatus status;
-   
-   @Column(name = "result_code")
+
+   @Field("result_code")
    private String resultCode;
-   
-   @Column(name = "result_message")
+
+   @Field("result_message")
    private String resultMessage;
-   
-   @Column(name = "created_at", nullable = false)
+
+   @Field("created_at")
+   @Indexed
    private LocalDateTime createdAt;
-   
-   @Column(name = "updated_at")
+
+   @Field("updated_at")
    private LocalDateTime updatedAt;
 
    public void updateStatus(MessageStatus status, String resultCode, String resultMessage) {
-       this.status = status;
-       this.resultCode = resultCode;
-       this.resultMessage = resultMessage;
-       this.updatedAt = LocalDateTime.now();
+      this.status = status;
+      this.resultCode = resultCode;
+      this.resultMessage = resultMessage;
+      this.updatedAt = LocalDateTime.now();
    }
 }

@@ -60,6 +60,9 @@ public class MessageServiceImpl implements MessageService {
            MessageSendEvent sendEvent = MessageSendEvent.builder()
                    .messageId(message.getMessageId())
                    .messageGroupId(message.getMessageGroupId())
+                   .brandId(request.getBrandId())
+                   .templateId(request.getTemplateId())
+                   .chatbotId(request.getChatbotId())
                    .content(message.getContent())
                    .recipientPhone(encryptionService.decrypt(
                            recipients.stream()
@@ -68,6 +71,7 @@ public class MessageServiceImpl implements MessageService {
                                    .get()
                                    .getEncryptedPhone()
                    ))
+                   .status(MessageStatus.PENDING.name())
                    .build();
            eventPublisher.publishSendEvent(sendEvent);
        });

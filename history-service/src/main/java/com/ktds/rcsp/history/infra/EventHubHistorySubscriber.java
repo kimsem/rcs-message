@@ -6,6 +6,7 @@ import com.azure.messaging.eventhubs.models.EventPosition;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ktds.rcsp.common.event.MessageResultEvent;
 import com.ktds.rcsp.common.event.MessageSendEvent;
+import com.ktds.rcsp.history.domain.MessageStatus;
 import com.ktds.rcsp.history.service.HistoryService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +41,7 @@ public class EventHubHistorySubscriber {
                             MessageSendEvent event = objectMapper.readValue(eventBody, MessageSendEvent.class);
 
                             log.info("Received message result event: {}", event.getMessageId());
-                            historyService.saveMessageHistory(event.getMessageId(), event.getStatus());
+                            historyService.saveMessageHistory(event);
                         } catch (Exception e) {
                             log.error("Error processing message result event", e);
                         }
