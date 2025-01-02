@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.awt.image.PixelGrabber;
 import java.time.LocalDateTime;
 
 @Entity
@@ -49,16 +48,50 @@ public class MessageGroupSummary {
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        status = "CREATED";
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = this.createdAt;  // updatedAt도 초기화
+        if (this.status == null) {
+            this.status = "CREATED";
+        }
     }
+
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
 
+    // updatedAt과 status를 위한 setter 메서드 추가
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    // processed_count를 위한 setter 추가
+    public void setProcessedCount(int processedCount) {
+        this.processedCount = processedCount;
+    }
+
+    // total_count를 위한 setter 추가
+    public void setTotalCount(int totalCount) {
+        this.totalCount = totalCount;
+    }
+
+
+    public void updateProgress(int processedCount, int totalCount) {
+        this.processedCount = processedCount;
+        this.totalCount = totalCount;
+
+        if (processedCount == 0) {
+            this.status = "UPLOADING";
+        } else if (processedCount == totalCount) {
+            this.status = "COMPLETED";
+        } else {
+            this.status = "PROCESSING";
+        }
+        this.updatedAt = LocalDateTime.now();
     }
 }

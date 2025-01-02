@@ -1,59 +1,56 @@
 package com.ktds.rcsp.message.infra;
 
-import com.azure.messaging.eventhubs.EventData;
-import com.azure.messaging.eventhubs.EventHubConsumerClient;
-import com.azure.messaging.eventhubs.models.EventPosition;
-import com.azure.messaging.eventhubs.models.PartitionEvent;
+import com.azure.messaging.eventhubs.*;
+import com.azure.messaging.eventhubs.models.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ktds.rcsp.common.event.MessageResultEvent;
-import com.ktds.rcsp.common.event.MessageSendEvent;
 import com.ktds.rcsp.common.event.RecipientUploadEvent;
-import com.ktds.rcsp.message.domain.ProcessingStatus;
-import com.ktds.rcsp.message.domain.Recipient;
-import com.ktds.rcsp.message.repository.RecipientRepository;
-import com.ktds.rcsp.message.service.MessageService;
-import lombok.RequiredArgsConstructor;
+import com.ktds.rcsp.message.domain.*;
+import com.ktds.rcsp.message.repository.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import jakarta.annotation.PostConstruct;
-
 import java.time.Duration;
-import java.util.stream.StreamSupport;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 @Slf4j
 @Component
 public class EventHubMessageSubscriber {
     private final EventHubConsumerClient encryptConsumerClient;
-    private final EventHubConsumerClient sendConsumerClient;
-    private final EventHubConsumerClient resultConsumerClient;
     private final ObjectMapper objectMapper;
-    private final MessageService messageService;
     private final RecipientRepository recipientRepository;
     private final EncryptionService encryptionService;
+    private final MessageGroupSummaryRepository messageGroupSummaryRepository;
+    private final ConcurrentHashMap<String, Long> lastProcessedOffsets = new ConcurrentHashMap<>();
+
+    private final Map<String, ProcessingStatus> statusMap = new ConcurrentHashMap<>();
+    private final Map<String, AtomicInteger> processedCountMap = new ConcurrentHashMap<>();
+    private final Map<String, AtomicInteger> successCountMap = new ConcurrentHashMap<>();
+    private final Map<String, AtomicInteger> failCountMap = new ConcurrentHashMap<>();
+
 
     public EventHubMessageSubscriber(
             @Qualifier("encryptEventHubConsumer") EventHubConsumerClient encryptConsumerClient,
-            @Qualifier("sendEventHubConsumer") EventHubConsumerClient sendConsumerClient,
-            @Qualifier("resultEventHubConsumer") EventHubConsumerClient resultConsumerClient,
             ObjectMapper objectMapper,
-            MessageService messageService,
             RecipientRepository recipientRepository,
-            EncryptionService encryptionService) {
+            EncryptionService encryptionService,
+            MessageGroupSummaryRepository messageGroupSummaryRepository) {
         this.encryptConsumerClient = encryptConsumerClient;
-        this.sendConsumerClient = sendConsumerClient;
-        this.resultConsumerClient = resultConsumerClient;
         this.objectMapper = objectMapper;
-        this.messageService = messageService;
         this.recipientRepository = recipientRepository;
         this.encryptionService = encryptionService;
+        this.messageGroupSummaryRepository = messageGroupSummaryRepository;
     }
 
     @PostConstruct
     public void subscribe() {
         startEncryptSubscription();
-        startSendSubscription();
-        startResultSubscription();
     }
 
     private void startEncryptSubscription() {
@@ -61,27 +58,32 @@ public class EventHubMessageSubscriber {
             while (true) {
                 try {
                     for (String partitionId : encryptConsumerClient.getPartitionIds()) {
+                        Long lastOffset = lastProcessedOffsets.get(partitionId);
+                        EventPosition startPosition = (lastOffset != null) ?
+                                EventPosition.fromOffset(lastOffset) : // Long 타입 사용
+                                EventPosition.latest();
+
                         Iterable<PartitionEvent> events = encryptConsumerClient.receiveFromPartition(
                                 partitionId,
                                 100,
-                                EventPosition.latest()
+                                startPosition,
+                                Duration.ofSeconds(10)
                         );
 
                         for (PartitionEvent partitionEvent : events) {
                             try {
-                                EventData eventData = partitionEvent.getData();
-                                String eventBody = new String(eventData.getBody());
-                                RecipientUploadEvent event = objectMapper.readValue(eventBody, RecipientUploadEvent.class);
-
-                                processRecipientEvent(event);
+                                processEvent(partitionEvent);
+                                // 성공적으로 처리된 메시지의 offset 저장
+                                lastProcessedOffsets.put(partitionId,
+                                        partitionEvent.getData().getOffset());
                             } catch (Exception e) {
-                                log.error("Error processing encrypt event", e);
+                                log.error("Error processing event", e);
                             }
                         }
                     }
-                    Thread.sleep(50);
+                    Thread.sleep(1000);
                 } catch (Exception e) {
-                    log.error("Error in encrypt subscription", e);
+                    log.error("Error in subscription", e);
                     handleSubscriptionError();
                 }
             }
@@ -90,112 +92,107 @@ public class EventHubMessageSubscriber {
         subscriberThread.start();
     }
 
-    private void startSendSubscription() {
-        Thread subscriberThread = new Thread(() -> {
-            while (true) {
-                try {
-                    for (String partitionId : sendConsumerClient.getPartitionIds()) {
-                        Iterable<PartitionEvent> events = sendConsumerClient.receiveFromPartition(
-                                partitionId,
-                                100,
-                                EventPosition.latest()
-                        );
+    private void processEvent(PartitionEvent partitionEvent)  {
+        EventData eventData = partitionEvent.getData();
+        String eventBody = new String(eventData.getBody());
+        RecipientUploadEvent event = objectMapper.readValue(eventBody, RecipientUploadEvent.class);
 
-                        for (PartitionEvent partitionEvent : events) {
-                            try {
-                                EventData eventData = partitionEvent.getData();
-                                String eventBody = new String(eventData.getBody());
-                                MessageSendEvent event = objectMapper.readValue(eventBody, MessageSendEvent.class);
+        if (!isValidEvent(event)) {
+            log.warn("Invalid event detected, skipping");
+            return;
+        }
 
-                                processMessageSendEvent(event);
-                            } catch (Exception e) {
-                                log.error("Error processing send event", e);
-                            }
-                        }
-                    }
-                    Thread.sleep(50);
-                } catch (Exception e) {
-                    log.error("Error in send subscription", e);
-                    handleSubscriptionError();
-                }
-            }
-        }, "SendSubscriber");
-        subscriberThread.setDaemon(true);
-        subscriberThread.start();
-    }
+        Optional<MessageGroupSummary> messageGroupOptional = messageGroupSummaryRepository.findById(event.getMessageGroupId());
 
-    private void startResultSubscription() {
-        Thread subscriberThread = new Thread(() -> {
-            while (true) {
-                try {
-                    for (String partitionId : resultConsumerClient.getPartitionIds()) {
-                        Iterable<PartitionEvent> events = resultConsumerClient.receiveFromPartition(
-                                partitionId,
-                                100,
-                                EventPosition.latest()
-                        );
+        if (messageGroupOptional.isEmpty()) {
+            log.warn("Message group not found: {}", event.getMessageGroupId());
+            return;
+        }
 
-                        for (PartitionEvent partitionEvent : events) {
-                            try {
-                                EventData eventData = partitionEvent.getData();
-                                String eventBody = new String(eventData.getBody());
-                                MessageResultEvent event = objectMapper.readValue(eventBody, MessageResultEvent.class);
+        MessageGroupSummary messageGroup = messageGroupOptional.get();
 
-                                processMessageResultEvent(event);
-                            } catch (Exception e) {
-                                log.error("Error processing result event", e);
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    log.error("Error in result subscription", e);
-                    handleSubscriptionError();
-                }
-            }
-        }, "ResultSubscriber");
-        subscriberThread.setDaemon(true);
-        subscriberThread.start();
-    }
+        String encryptedPhone = encryptionService.encrypt(event.getPhoneNumber());
 
-    private void processRecipientEvent(RecipientUploadEvent event) {
+        // 중복 체크
+        if (recipientRepository.existsByMessageGroupIdAndEncryptedPhone(event.getMessageGroupId(), encryptedPhone)) {
+            log.info("Duplicate recipient ignored: {} {}", event.getMessageGroupId(), event.getPhoneNumber());
+            return;
+        }
+
+        // 신규 수신자 저장
+        Recipient recipient = Recipient.builder()
+                .messageGroupId(event.getMessageGroupId())
+                .encryptedPhone(encryptedPhone)
+                .status(ProcessingStatus.COMPLETED)
+                .build();
+
+        recipientRepository.save(recipient);
+
+        // 처리 건수 업데이트
+        int processedCount = messageGroup.getProcessedCount() + 1;
+        messageGroup.setProcessedCount(processedCount);
+
+        ProcessingStatus status;
+        if (processedCount == 0) {
+            status = ProcessingStatus.UPLOADING;
+        } else if (processedCount == messageGroup.getTotalCount()) {
+            status = ProcessingStatus.COMPLETED;
+        } else if (processedCount < messageGroup.getTotalCount()) {
+            status = ProcessingStatus.PROCESSING;
+        } else {
+            status = ProcessingStatus.FAILED;
+        }
+
+
+        messageGroup.setStatus(status.name());
+        messageGroup.setProcessedCount(processedCount);
+        messageGroup.setUpdatedAt(LocalDateTime.now());
+
+        messageGroupSummaryRepository.save(messageGroup);
+
+        // 상태 맵 업데이트
+        statusMap.put(messageGroup.getMessageGroupId(), status);
+        processedCountMap.get(messageGroup.getMessageGroupId()).incrementAndGet();
+        successCountMap.get(messageGroup.getMessageGroupId()).incrementAndGet();
+
+
+
         try {
-            Recipient recipient = Recipient.builder()
-                    .messageGroupId(event.getMessageGroupId())
-                    .encryptedPhone(encryptionService.encrypt(event.getPhoneNumber()))
-//                    .encryptedName(encryptionService.encrypt(event.getName()))
-                    .status(ProcessingStatus.COMPLETED)
-                    .build();
-
-            recipientRepository.save(recipient);
-            log.info("Processed recipient upload event: messageGroupId={}, phone={}",
-                    event.getMessageGroupId(), event.getPhoneNumber());
+            failCountMap.putIfAbsent(messageGroup.getMessageGroupId(), new AtomicInteger(0));
+            failCountMap.get(messageGroup.getMessageGroupId()).set(messageGroup.getTotalCount() - processedCount);
         } catch (Exception e) {
-            log.error("Error processing recipient event", e);
+            log.error("Error processing event", e);
+            failCountMap.putIfAbsent(messageGroup.getMessageGroupId(), new AtomicInteger(0));
+            failCountMap.get(messageGroup.getMessageGroupId()).incrementAndGet();
+            throw e;
         }
     }
 
-    private void processMessageSendEvent(MessageSendEvent event) {
-        try {
-            log.info("Processing message send event: messageId={}", event.getMessageId());
-            // 메시지 전송 처리 로직 구현
-        } catch (Exception e) {
-            log.error("Error processing message send event", e);
-        }
-    }
 
-    private void processMessageResultEvent(MessageResultEvent event) {
-        try {
-            log.info("Processing message result event: messageId={}, status={}",
-                    event.getMessageId(), event.getStatus());
-            messageService.processMessageResult(event.getMessageId(), event.getStatus());
-        } catch (Exception e) {
-            log.error("Error processing message result event", e);
-        }
+//        // 총 건수와 처리 건수 일치 시 상태 변경
+//        long totalRecipients = recipientRepository.countByMessageGroupId(group.getMessageGroupId());
+//        long processedRecipients = recipientRepository.countByMessageGroupIdAndStatus(
+//                group.getMessageGroupId(), ProcessingStatus.COMPLETED);
+//
+//        if (totalRecipients > 0 && totalRecipients == processedRecipients) {
+//            group.setStatus("COMPLETED");
+//            group.setUpdatedAt(LocalDateTime.now());
+//            log.info("메시지 그룹 {} 처리 완료", group.getMessageGroupId());
+//        }
+//
+//        messageGroupSummaryRepository.save(group);
+//
+//        log.debug("이벤트 성공적으로 처리: {} {}",
+//                event.getMessageGroupId(), event.getPhoneNumber());
+    private boolean isValidEvent(RecipientUploadEvent event) {
+        return event != null &&
+                event.getMessageGroupId() != null &&
+                event.getPhoneNumber() != null;
     }
 
     private void handleSubscriptionError() {
         try {
-            Thread.sleep(100);
+            Thread.sleep(5000); // 에러 발생시 5초 대기
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
         }

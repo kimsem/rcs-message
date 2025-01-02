@@ -1,6 +1,7 @@
 package com.ktds.rcsp.message.infra;
 
 import com.azure.messaging.eventhubs.EventData;
+import com.azure.messaging.eventhubs.EventDataBatch;
 import com.azure.messaging.eventhubs.EventHubProducerClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ktds.rcsp.common.event.MessageSendEvent;
@@ -35,8 +36,15 @@ public class EventHubMessagePublisher {
         try {
             String eventData = objectMapper.writeValueAsString(event);
             EventData data = new EventData(eventData);
-            sendProducerClient.send(Arrays.asList(data));
-            log.info("Published message send event: {}", event.getMessageId());
+            EventDataBatch batch = sendProducerClient.createBatch();
+
+            if (batch.tryAdd(data)) {
+                sendProducerClient.send(batch);
+                log.info("Published message send event: {}", event.getMessageId());
+            } else {
+                log.error("Message send event too large to fit in batch");
+                throw new RuntimeException("Message send event too large to fit in batch");
+            }
         } catch (Exception e) {
             log.error("Error publishing message send event", e);
             throw new RuntimeException("Failed to publish message send event", e);
@@ -45,14 +53,22 @@ public class EventHubMessagePublisher {
 
     public void publishUploadEvent(RecipientUploadEvent event) {
         try {
+            log.debug("Attempting to publish event: {}", event);
             String eventData = objectMapper.writeValueAsString(event);
             EventData data = new EventData(eventData);
-            List<EventData> events = Arrays.asList(data);
-            encryptProducerClient.send(events);
-            log.info("Published recipient upload event: {}", event.getMessageGroupId());
+            EventDataBatch batch = encryptProducerClient.createBatch();
+
+            if (batch.tryAdd(data)) {
+                encryptProducerClient.send(batch);
+                log.info("Successfully published event for messageGroupId: {}",
+                        event.getMessageGroupId());
+            } else {
+                log.error("Event too large to fit in batch");
+                throw new RuntimeException("Event too large to fit in batch");
+            }
         } catch (Exception e) {
-            log.error("Error publishing recipient upload event", e);
-            throw new RuntimeException("Failed to publish recipient upload event", e);
+            log.error("Failed to publish upload event: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to publish upload event", e);
         }
     }
 }

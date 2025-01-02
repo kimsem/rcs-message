@@ -1,88 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
-  <title>수신자 파일 업로드</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-      background-color: #f4f4f4;
-    }
-    .container {
-      background-color: white;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    .upload-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    .btn {
-      padding: 10px 15px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-    .btn-logout {
-      background-color: #dc3545;
-      color: white;
-    }
-    .btn-upload {
-      background-color: #007bff;
-      color: white;
-    }
-    .file-info {
-      background-color: #f8f9fa;
-      border: 1px solid #e9ecef;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 4px;
-    }
-    .progress-bar {
-      width: 100%;
-      background-color: #e9ecef;
-      border-radius: 5px;
-      margin-top: 15px;
-      height: 25px;
-    }
-    .progress-bar-fill {
-      height: 100%;
-      background-color: #28a745;
-      border-radius: 5px;
-      width: 0%;
-      transition: width 0.5s ease-in-out;
-    }
-    .upload-details {
-      margin-top: 15px;
-      background-color: #f1f3f5;
-      padding: 15px;
-      border-radius: 5px;
-    }
-    #status {
-      margin-top: 15px;
-      padding: 10px;
-      border-radius: 4px;
-      text-align: center;
-    }
-  </style>
-</head>
-<body>
-<div class="container">
-  <div class="upload-header">
-    <h2>수신자 파일 업로드</h2>
-    <!DOCTYPE html>
-    <html xmlns:th="http://www.thymeleaf.org">
-    <head>
-      <meta charset="UTF-8">
-      <title>수신자 파일 업로드</title>
-      <style>
+    <meta charset="UTF-8">
+    <title>수신자 파일 업로드</title>
+    <style>
         body {
           font-family: Arial, sans-serif;
           max-width: 800px;
@@ -150,570 +71,515 @@
           border-radius: 4px;
           text-align: center;
         }
-        /* 새로 추가된 스타일 */
-        .basedata-section {
-          margin-bottom: 20px;
-          padding: 15px;
-          background-color: #fff;
-          border-radius: 4px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .basedata-section h3 {
-          margin-top: 0;
-          color: #333;
-          font-size: 1.1em;
-        }
-        .select-container {
-          margin-bottom: 15px;
-        }
-        select {
-          width: 100%;
-          padding: 8px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          margin-top: 5px;
-        }
-        .template-content {
-          margin-top: 10px;
-          padding: 10px;
-          background-color: #f8f9fa;
-          border: 1px solid #e9ecef;
-          border-radius: 4px;
-          white-space: pre-wrap;
-        }
-      </style>
-    </head>
-    <body>
-    <div class="container">
-      <div class="upload-header">
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="upload-header">
         <h2>수신자 파일 업로드</h2>
-        <button onclick="logout()" class="btn btn-logout">로그아웃</button>
-      </div>
+        <body>
+        <div class="container">
+            <div class="upload-header">
+                <h2>수신자 파일 업로드</h2>
+                <button onclick="logout()" class="btn btn-logout">로그아웃</button>
+            </div>
+            <!-- 기준정보 섹션 추가 -->
+            <div class="basedata-section">
+                <h3>메시지 발송 정보</h3>
+                <div class="select-container">
+                    <label>브랜드 선택:</label>
+                    <select id="brandSelect" onchange="loadTemplatesAndChatbots(this.value)">
+                        <option value="">브랜드를 선택하세요</option>
+                    </select>
+                </div>
+                <div class="select-container">
+                    <label>템플릿 선택:</label>
+                    <select id="templateSelect" onchange="showTemplateContent(this.value)">
+                        <option value="">템플릿을 선택하세요</option>
+                    </select>
+                    <div id="templateContent" class="template-content" style="display: none;"></div>
+                </div>
+                <div class="select-container">
+                    <label>발신번호 선택:</label>
+                    <select id="chatbotSelect">
+                        <option value="">발신번호를 선택하세요</option>
+                    </select>
+                </div>
+            </div>
+            <form id="uploadForm">
+                <div>
+                    <input type="file" name="file" accept=".csv,.xlsx,.xls" required class="form-control">
+                    <input
+                            type="hidden"
+                            name="messageGroupId"
+                            th:value="${'GROUP_' + #dates.format(#dates.createNow(), 'yyyyMMddHHmmss')}"
+                    >
+                    <div class="file-info">
+                        지원 파일 형식: CSV, Excel (xlsx, xls)<br>
+                        파일은 반드시 전화번호 컬럼을 포함해야 합니다.<br>
+                        - CSV 파일: 'phoneNumber' 컬럼 필요<br>
+                        - Excel 파일: '전화번호', '휴대폰', 'phone', 'mobile' 중 하나의 컬럼명 필요
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-upload">파일 업로드</button>
+            </form>
 
-      <!-- 기준정보 섹션 추가 -->
-      <div class="basedata-section">
-        <h3>메시지 발송 정보</h3>
-        <div class="select-container">
-          <label>브랜드 선택:</label>
-          <select id="brandSelect" onchange="loadTemplatesAndChatbots(this.value)">
-            <option value="">브랜드를 선택하세요</option>
-          </select>
+            <div id="progressContainer" style="display: none;">
+                <div class="progress-bar">
+                    <div id="progressBarFill" class="progress-bar-fill"></div>
+                </div>
+                <div id="uploadDetails" class="upload-details">
+                    <p>전체 건수: <span id="totalCount">0</span></p>
+                    <p>처리 건수: <span id="processedCount">0</span></p>
+                    <p>성공 건수: <span id="successCount">0</span></p>
+                    <p>실패 건수: <span id="failCount">0</span></p>
+                    <p>상태: <span id="uploadStatus">대기중</span></p>
+                </div>
+            </div>
+
+            <div id="status"></div>
         </div>
-        <div class="select-container">
-          <label>템플릿 선택:</label>
-          <select id="templateSelect" onchange="showTemplateContent(this.value)">
-            <option value="">템플릿을 선택하세요</option>
-          </select>
-          <div id="templateContent" class="template-content" style="display: none;"></div>
-        </div>
-        <div class="select-container">
-          <label>발신번호 선택:</label>
-          <select id="chatbotSelect">
-            <option value="">발신번호를 선택하세요</option>
-          </select>
-        </div>
-      </div>
 
-      <form id="uploadForm">
-        <div>
-          <input
-                  type="file"
-                  name="file"
-                  accept=".csv,.xlsx,.xls"
-                  required
-                  class="form-control"
-          >
-          <input
-                  type="hidden"
-                  name="messageGroupId"
-                  th:value="${'GROUP_' + #dates.format(#dates.createNow(), 'yyyyMMddHHmmss')}"
-          >
-          <div class="file-info">
-            지원 파일 형식: CSV, Excel (xlsx, xls)<br>
-            파일은 반드시 전화번호 컬럼을 포함해야 합니다.<br>
-            - CSV 파일: 'phoneNumber' 컬럼 필요<br>
-            - Excel 파일: '전화번호', '휴대폰', 'phone', 'mobile' 중 하나의 컬럼명 필요
-          </div>
-        </div>
-        <button type="submit" class="btn btn-upload">파일 업로드</button>
-      </form>
+        <script>
+          const BASE_URL = 'http://localhost:8084';
+          const API_URLS = {
+              templates: `${BASE_URL}/api/base/templates`,
+              chatbots: `${BASE_URL}/api/base/chatbots`,
+              brands: `${BASE_URL}/api/base/brands`
+          };
 
-      <div id="progressContainer" style="display: none;">
-        <div class="progress-bar">
-          <div id="progressBarFill" class="progress-bar-fill"></div>
-        </div>
-        <div id="uploadDetails" class="upload-details">
-          <p>전체 건수: <span id="totalCount">0</span></p>
-          <p>처리 건수: <span id="processedCount">0</span></p>
-          <p>성공 건수: <span id="successCount">0</span></p>
-          <p>실패 건수: <span id="failCount">0</span></p>
-          <p>상태: <span id="uploadStatus">대기중</span></p>
-        </div>
-      </div>
+              document.addEventListener('DOMContentLoaded', function() {
+                  const token = localStorage.getItem('token');
+                  const masterId = localStorage.getItem('masterId');
 
-      <div id="status"></div>
-    </div>
-
-<script>
-
-  const BASE_URL = 'http://localhost:8084';
-const API_URLS = {
-    templates: `${BASE_URL}/api/base/templates`,
-    chatbots: `${BASE_URL}/api/base/chatbots`,
-    brands: `${BASE_URL}/api/base/brands`
-};
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const token = localStorage.getItem('token');
-        const masterId = localStorage.getItem('masterId');
-
-        if (!token || !masterId) {
-            console.log('Missing token or masterId');
-            window.location.href = '/login';
-            return;
-        }
-
-        console.log('Initializing with token and masterId:', { token, masterId });
-        checkTokenValidity(token);
-        loadBaseData();
-    });
-
-    function loadBaseData() {
-        const token = localStorage.getItem('token');
-        const masterId = localStorage.getItem('masterId');
-
-        console.log('Loading brands with masterId:', masterId);
-        console.log('Token:', token);
-
-        fetch(`http://localhost:8084/api/base/brands?masterId=${masterId}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        })
-        .then(response => {
-            console.log('Raw response:', response);
-            return handleFetchError(response);
-        })
-        .then(response => {
-            console.log('Parsed response:', response);
-            const brands = response.data;
-            console.log('Brands data:', brands);
-
-            const brandSelect = document.getElementById('brandSelect');
-            brandSelect.innerHTML = '<option value="">브랜드를 선택하세요</option>';
-            brands.forEach(brand => {
-                console.log('Adding brand:', brand);
-                brandSelect.innerHTML += `<option value="${brand.brandId}">${brand.brandName}</option>`;
-            });
-        })
-        .catch(error => {
-            console.error('브랜드 로드 중 오류 발생:', error);
-            showError('브랜드 정보를 불러오는데 실패했습니다.');
-        });
-    }
-
-
-
-function loadTemplatesAndChatbots(brandId) {
-    if (!brandId) {
-        // 브랜드가 선택되지 않은 경우 템플릿과 발신번호 select 초기화
-        resetSelectOptions();
-        return;
-    }
-
-    const token = localStorage.getItem('token');
-    console.log('디버깅 로그 추가 Loading data for brandId:', brandId); // 디버깅 로그 추가
-    console.log('디버깅 로그 추가 With token:', token); // 디버깅 로그 추가
-
-
-    // 템플릿과 발신번호를 병렬로 로드
-    Promise.all([
-        fetch(`${API_URLS.templates}?brandId=${brandId}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        }).then(handleFetchError).catch(error => {
-            console.error('Template fetch error:', error);
-            return { data: [] }; // 기본값 반환
-        }),
-        fetch(`${API_URLS.chatbots}?brandId=${brandId}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        }).then(handleFetchError).catch(error => {
-            console.error('Chatbot fetch error:', error);
-            return { data: [] }; // 기본값 반환
-        })
-    ])
-    .then(([templateResponse, chatbotResponse]) => {
-        // 템플릿 업데이트
-        const templates = templateResponse.data;
-        const templateSelect = document.getElementById('templateSelect');
-        templateSelect.innerHTML = '<option value="">템플릿을 선택하세요</option>';
-        templates.forEach(template => {
-            templateSelect.innerHTML += `<option value="${template.templateId}" data-content="${template.content}">${template.templateName}</option>`;
-        });
-
-        // 발신번호 업데이트
-        const chatbots = chatbotResponse.data;
-        const chatbotSelect = document.getElementById('chatbotSelect');
-        chatbotSelect.innerHTML = '<option value="">발신번호를 선택하세요</option>';
-        chatbots.forEach(chatbot => {
-            chatbotSelect.innerHTML += `<option value="${chatbot.chatbotId}">${chatbot.phoneNumber}</option>`;
-        });
-
-        // 템플릿 내용 영역 초기화
-        const templateContent = document.getElementById('templateContent');
-        templateContent.style.display = 'none';
-        templateContent.textContent = '';
-    })
-    .catch(error => {
-        console.error('데이터 로드 중 오류 발생:', error);
-        showError('템플릿과 발신번호 정보를 불러오는데 실패했습니다.');
-        resetSelectOptions();
-    });
-}
-
-function resetSelectOptions() {
-    // 템플릿 초기화
-    const templateSelect = document.getElementById('templateSelect');
-    templateSelect.innerHTML = '<option value="">템플릿을 선택하세요</option>';
-
-    // 발신번호 초기화
-    const chatbotSelect = document.getElementById('chatbotSelect');
-    chatbotSelect.innerHTML = '<option value="">발신번호를 선택하세요</option>';
-
-    // 템플릿 내용 숨기기
-    const templateContent = document.getElementById('templateContent');
-    templateContent.style.display = 'none';
-    templateContent.textContent = '';
-}
-
-  // 템플릿 내용 표시 함수
-function showTemplateContent(templateId) {
-    const templateSelect = document.getElementById('templateSelect');
-    const templateContent = document.getElementById('templateContent');
-    const selectedOption = templateSelect.options[templateSelect.selectedIndex];
-
-    if (selectedOption && selectedOption.dataset.content) {
-        templateContent.textContent = selectedOption.dataset.content;
-        templateContent.style.display = 'block';
-    } else {
-        templateContent.style.display = 'none';
-        templateContent.textContent = '';
-    }
-}
-
-  // 에러 표시 함수
-  function showError(message) {
-    const status = document.getElementById('status');
-    status.textContent = message;
-    status.style.backgroundColor = '#f8d7da';
-    status.style.color = '#721c24';
-    status.style.display = 'block';
-
-    setTimeout(() => {
-      status.style.display = 'none';
-    }, 3000);
-  }
-
-  function checkTokenValidity(token) {
-    fetch('/api/auth/verify?token=' + token)
-            .then(response => {
-              if (!response.ok) {
-                localStorage.removeItem('token');
-                window.location.href = '/login';
-              }
-            })
-            .catch(error => {
-              console.error('Token validation error:', error);
-              localStorage.removeItem('token');
-              window.location.href = '/login';
-            });
-  }
-
-  function logout() {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
-  }
-
-function handleFetchError(response) {
-    console.log('Handling fetch response:', {
-        status: response.status,
-        statusText: response.statusText,
-        url: response.url,
-        headers: Object.fromEntries(response.headers)
-    });
-
-    // 응답 본문도 로깅
-    response.clone().text().then(body => {
-        console.log('응답 본문도 로깅 Response body:', body);
-    });
-
-    if (!response.ok) {
-        if (response.status === 401) {
-            console.error('Authentication error');
-            localStorage.removeItem('token');
-            window.location.href = '/login';
-            throw new Error('인증이 만료되었습니다.');
-        }
-        return response.json().then(errorData => {
-            console.error('Error data:', errorData);
-            throw new Error(errorData.message || '알 수 없는 오류가 발생했습니다.');
-        });
-    }
-    return response.json();
-}
-
-  function uploadFile(formData, token) {
-
-    const uiElements = [
-      { id: 'totalCount', defaultValue: '0' },
-      { id: 'processedCount', defaultValue: '0' },
-      { id: 'successCount', defaultValue: '0' },
-      { id: 'failCount', defaultValue: '0' },
-      { id: 'uploadStatus', defaultValue: 'UPLOADING' }
-    ];
-
-    // 모든 UI 요소 초기화
-    uiElements.forEach(element => {
-      const el = document.getElementById(element.id);
-      if (el) {
-        el.textContent = element.defaultValue;
-      }
-    });
-
-    console.log('Starting file upload...'); // 추가
-    console.log('Form data:', {
-      messageGroupId: formData.get('messageGroupId'),
-      fileName: formData.get('file').name
-    }); // 추가
-
-    const progressContainer = document.getElementById('progressContainer');
-    const status = document.getElementById('status');
-    const progressBarFill = document.getElementById('progressBarFill');
-
-    progressContainer.style.display = 'block';
-    progressBarFill.style.width = '0%';
-    status.style.display = 'none';
-
-    // 카운트 초기화
-    document.getElementById('totalCount').textContent = '0';
-    document.getElementById('processedCount').textContent = '0';
-    document.getElementById('successCount').textContent = '0';
-    document.getElementById('failCount').textContent = '0';
-    document.getElementById('uploadStatus').textContent = 'UPLOADING';
-
-    return fetch('http://localhost:8082/api/recipients/upload', {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Authorization': 'Bearer ' + token
-      },
-<!--      credentials: 'include'-->
-    })
-            .then(response => {
-              console.log('Upload response status:', response.status); // 추가
-              return handleFetchError(response);
-            })
-            .then(data => {
-              console.log('Upload response data:', data); // 추가
-              status.textContent = '파일 업로드 완료. 처리 진행중...';
-              status.style.backgroundColor = '#d4edda';
-              status.style.color = '#155724';
-              return formData.get('messageGroupId');
-            })
-            .catch(error => {
-              console.error('Upload error:', error);
-              throw error;
-            });
-  }
-
-  let statusCheckInterval = null; // 전역 변수로 선언
-
-      function checkUploadStatus(messageGroupId) {
-          if (statusCheckInterval) {
-              clearInterval(statusCheckInterval);
-          }
-
-          console.log('Starting status check for messageGroupId:', messageGroupId);
-
-          const token = localStorage.getItem('token');
-          if (!token) {
-              console.error('No token found');
-              alert('로그인이 필요합니다.');
-              window.location.href = '/login';
-              return;
-          }
-
-          const progressContainer = document.getElementById('progressContainer');
-          const status = document.getElementById('status');
-          let checkCount = 0;
-
-          statusCheckInterval = setInterval(() => {
-              checkCount++;
-              console.log(`Making status check request... (attempt ${checkCount})`);
-
-              // URL 수정: == 제거
-              fetch(`http://localhost:8082/api/recipients/status?messageGroupId=${messageGroupId}`, {
-                  method: 'GET',
-                  headers: {
-                      'Authorization': `Bearer ${token}`,
-                      'Content-Type': 'application/json'  // Content-Type 헤더 추가
-                  },
-                  credentials: 'include'
-              })
-              .then(response => {
-                  console.log(`Status check response (attempt ${checkCount}):`, response.status);
-                  return handleFetchError(response);
-              })
-              .then(data => {
-                  console.log(`Status check data (attempt ${checkCount}):`, data);
-                  if (!data || !data.data) {
-                      console.error('Invalid response data:', data);
+                  if (!token || !masterId) {
+                      console.log('Missing token or masterId');
+                      window.location.href = '/login';
                       return;
                   }
 
-                  const progressData = data.data;
-                  console.log('Progress data:', progressData); // 진행 상태 데이터 로깅
+                  console.log('Initializing with token and masterId:', { token, masterId });
+                  checkTokenValidity(token);
+                  loadBaseData();
+              });
 
-                  updateProgressUI(progressData);
+              function loadBaseData() {
+                  const token = localStorage.getItem('token');
+                  const masterId = localStorage.getItem('masterId');
 
-                  // 상태 체크 로직 개선
-                  if (progressData.status === 'COMPLETED' ||
-                      (progressData.processedCount > 0 && progressData.processedCount >= progressData.totalCount)) {
-                      console.log(`Processing completed after ${checkCount} checks`);
-                      clearInterval(statusCheckInterval);
-                      statusCheckInterval = null;
+                  console.log('Loading brands with masterId:', masterId);
+                  console.log('Token:', token);
 
-                      status.textContent = '파일 처리 완료';
-                      status.style.backgroundColor = '#d4edda';
-                      status.style.color = '#155724';
-                      status.style.display = 'block';
+                  fetch(`http://localhost:8084/api/base/brands?masterId=${masterId}`, {
+                      headers: {
+                          'Authorization': `Bearer ${token}`
+                      }
+                  })
+                  .then(response => {
+                      console.log('Raw response:', response);
+                      return handleFetchError(response);
+                  })
+                  .then(response => {
+                      console.log('Parsed response:', response);
+                      const brands = response.data;
+                      console.log('Brands data:', brands);
 
-                      setTimeout(() => {
-                          resetProgressUI();
-                          status.style.display = 'none';
-                      }, 3000);
-                  }
+                      const brandSelect = document.getElementById('brandSelect');
+                      brandSelect.innerHTML = '<option value="">브랜드를 선택하세요</option>';
+                      brands.forEach(brand => {
+                          console.log('Adding brand:', brand);
+                          brandSelect.innerHTML += `<option value="${brand.brandId}">${brand.brandName}</option>`;
+                      });
+                  })
+                  .catch(error => {
+                      console.error('브랜드 로드 중 오류 발생:', error);
+                      showError('브랜드 정보를 불러오는데 실패했습니다.');
+                  });
+              }
+
+
+
+          function loadTemplatesAndChatbots(brandId) {
+              if (!brandId) {
+                  // 브랜드가 선택되지 않은 경우 템플릿과 발신번호 select 초기화
+                  resetSelectOptions();
+                  return;
+              }
+
+              const token = localStorage.getItem('token');
+              console.log('디버깅 로그 추가 Loading data for brandId:', brandId); // 디버깅 로그 추가
+              console.log('디버깅 로그 추가 With token:', token); // 디버깅 로그 추가
+
+
+              // 템플릿과 발신번호를 병렬로 로드
+              Promise.all([
+                  fetch(`${API_URLS.templates}?brandId=${brandId}`, {
+                      headers: {
+                          'Authorization': `Bearer ${token}`,
+                          'Content-Type': 'application/json'
+                      }
+                  }).then(handleFetchError).catch(error => {
+                      console.error('Template fetch error:', error);
+                      return { data: [] }; // 기본값 반환
+                  }),
+                  fetch(`${API_URLS.chatbots}?brandId=${brandId}`, {
+                      headers: {
+                          'Authorization': `Bearer ${token}`,
+                          'Content-Type': 'application/json'
+                      }
+                  }).then(handleFetchError).catch(error => {
+                      console.error('Chatbot fetch error:', error);
+                      return { data: [] }; // 기본값 반환
+                  })
+              ])
+              .then(([templateResponse, chatbotResponse]) => {
+                  // 템플릿 업데이트
+                  const templates = templateResponse.data;
+                  const templateSelect = document.getElementById('templateSelect');
+                  templateSelect.innerHTML = '<option value="">템플릿을 선택하세요</option>';
+                  templates.forEach(template => {
+                      templateSelect.innerHTML += `<option value="${template.templateId}" data-content="${template.content}">${template.templateName}</option>`;
+                  });
+
+                  // 발신번호 업데이트
+                  const chatbots = chatbotResponse.data;
+                  const chatbotSelect = document.getElementById('chatbotSelect');
+                  chatbotSelect.innerHTML = '<option value="">발신번호를 선택하세요</option>';
+                  chatbots.forEach(chatbot => {
+                      chatbotSelect.innerHTML += `<option value="${chatbot.chatbotId}">${chatbot.phoneNumber}</option>`;
+                  });
+
+                  // 템플릿 내용 영역 초기화
+                  const templateContent = document.getElementById('templateContent');
+                  templateContent.style.display = 'none';
+                  templateContent.textContent = '';
               })
               .catch(error => {
-                  console.error(`Status check error (attempt ${checkCount}):`, error);
-                  clearInterval(statusCheckInterval);
-                  statusCheckInterval = null;
-
-                  resetProgressUI();
-                  showError('처리 중 오류 발생: ' + error.message);
+                  console.error('데이터 로드 중 오류 발생:', error);
+                  showError('템플릿과 발신번호 정보를 불러오는데 실패했습니다.');
+                  resetSelectOptions();
               });
-          }, 50); // 체크 간격을 1초로 수정
-      }
-
-
-    // 진행 상태 UI 초기화 함수 추가
-    function resetProgressUI() {
-        const progressContainer = document.getElementById('progressContainer');
-        progressContainer.style.display = 'none';
-
-        document.getElementById('totalCount').textContent = '0';
-        document.getElementById('processedCount').textContent = '0';
-        document.getElementById('successCount').textContent = '0';
-        document.getElementById('failCount').textContent = '0';
-        document.getElementById('uploadStatus').textContent = '대기중';
-        document.getElementById('progressBarFill').style.width = '0%';
-    }
-
-
-
-  // 진행 상태 UI 업데이트 함수 개선
-  function updateProgressUI(progressData) {
-      console.log('Updating UI with progress data:', progressData);
-
-      const elements = {
-          totalCount: document.getElementById('totalCount'),
-          processedCount: document.getElementById('processedCount'),
-          successCount: document.getElementById('successCount'),
-          failCount: document.getElementById('failCount'),
-          uploadStatus: document.getElementById('uploadStatus'),
-          progressBarFill: document.getElementById('progressBarFill')
-      };
-
-      // 모든 요소가 존재하는지 확인
-      if (Object.values(elements).every(el => el)) {
-          elements.totalCount.textContent = progressData.totalCount || 0;
-          elements.processedCount.textContent = progressData.processedCount || 0;
-          elements.successCount.textContent = progressData.successCount || 0;
-          elements.failCount.textContent = progressData.failCount || 0;
-          elements.uploadStatus.textContent = progressData.status || 'PROCESSING';
-
-          // 진행률 계산 및 표시
-          const total = progressData.totalCount || 0;
-          const processed = progressData.processedCount || 0;
-          if (total > 0) {
-              const progressPercentage = Math.min(Math.round((processed / total) * 100), 100);
-              elements.progressBarFill.style.width = `${progressPercentage}%`;
-              console.log(`Progress: ${progressPercentage}%`);
           }
-      } else {
-          console.error('Some UI elements not found');
-      }
-  }
 
-  document.getElementById('uploadForm').addEventListener('submit', function(e) {
-    e.preventDefault();
+          function resetSelectOptions() {
+              // 템플릿 초기화
+              const templateSelect = document.getElementById('templateSelect');
+              templateSelect.innerHTML = '<option value="">템플릿을 선택하세요</option>';
 
-    const token = localStorage.getItem('token');
-    if (!token) {
-      alert('로그인이 필요합니다.');
-      window.location.href = '/login';
-      return;
-    }
+              // 발신번호 초기화
+              const chatbotSelect = document.getElementById('chatbotSelect');
+              chatbotSelect.innerHTML = '<option value="">발신번호를 선택하세요</option>';
 
-   // 필수 값 체크
-   const brandId = document.getElementById('brandSelect').value;
-   const templateId = document.getElementById('templateSelect').value;
-   const chatbotId = document.getElementById('chatbotSelect').value;
+              // 템플릿 내용 숨기기
+              const templateContent = document.getElementById('templateContent');
+              templateContent.style.display = 'none';
+              templateContent.textContent = '';
+          }
 
-   if (!brandId || !templateId || !chatbotId) {
-       alert('브랜드, 템플릿, 발신번호를 모두 선택해주세요.');
-       return;
-   }
+            // 템플릿 내용 표시 함수
+          function showTemplateContent(templateId) {
+              const templateSelect = document.getElementById('templateSelect');
+              const templateContent = document.getElementById('templateContent');
+              const selectedOption = templateSelect.options[templateSelect.selectedIndex];
 
-   const formData = new FormData(this);
-   formData.append('brandId', brandId);
-   formData.append('templateId', templateId);
-   formData.append('chatbotId', chatbotId);
+              if (selectedOption && selectedOption.dataset.content) {
+                  templateContent.textContent = selectedOption.dataset.content;
+                  templateContent.style.display = 'block';
+              } else {
+                  templateContent.style.display = 'none';
+                  templateContent.textContent = '';
+              }
+          }
 
-   const progressContainer = document.getElementById('progressContainer');
-   const status = document.getElementById('status');
-
-
-    // 진행 상태 초기화
-    progressContainer.style.display = 'block';
-    status.style.display = 'none';
-    document.getElementById('totalCount').textContent = '0';
-    document.getElementById('processedCount').textContent = '0';
-    document.getElementById('successCount').textContent = '0';
-    document.getElementById('failCount').textContent = '0';
-    document.getElementById('uploadStatus').textContent = 'UPLOADING';
-    document.getElementById('progressBarFill').style.width = '0%';
-
-    uploadFile(formData, token)
-            .then(messageGroupId => {
-              // 상태 확인 함수 호출
-              checkUploadStatus(messageGroupId);
-              return messageGroupId;
-            })
-            .catch(error => {
-              console.error('Upload error:', error);
-              progressContainer.style.display = 'none';
-              status.style.display = 'block';
-              status.textContent = '오류: ' + error.message;
+            // 에러 표시 함수
+            function showError(message) {
+              const status = document.getElementById('status');
+              status.textContent = message;
               status.style.backgroundColor = '#f8d7da';
               status.style.color = '#721c24';
+              status.style.display = 'block';
+
+              setTimeout(() => {
+                status.style.display = 'none';
+              }, 3000);
+            }
+
+            function checkTokenValidity(token) {
+              fetch('/api/auth/verify?token=' + token)
+                      .then(response => {
+                        if (!response.ok) {
+                          localStorage.removeItem('token');
+                          window.location.href = '/login';
+                        }
+                      })
+                      .catch(error => {
+                        console.error('Token validation error:', error);
+                        localStorage.removeItem('token');
+                        window.location.href = '/login';
+                      });
+            }
+
+            function logout() {
+              localStorage.removeItem('token');
+              window.location.href = '/login';
+            }
+
+          function handleFetchError(response) {
+              console.log('Handling fetch response:', {
+                  status: response.status,
+                  statusText: response.statusText,
+                  url: response.url,
+                  headers: Object.fromEntries(response.headers)
+              });
+
+              // 응답 본문도 로깅
+              response.clone().text().then(body => {
+                  console.log('응답 본문도 로깅 Response body:', body);
+              });
+
+              if (!response.ok) {
+                  if (response.status === 401) {
+                      console.error('Authentication error');
+                      localStorage.removeItem('token');
+                      window.location.href = '/login';
+                      throw new Error('인증이 만료되었습니다.');
+                  }
+                  return response.json().then(errorData => {
+                      console.error('Error data:', errorData);
+                      throw new Error(errorData.message || '알 수 없는 오류가 발생했습니다.');
+                  });
+              }
+              return response.json();
+          }
+
+            function uploadFile(formData, token) {
+
+              const uiElements = [
+                { id: 'totalCount', defaultValue: '0' },
+                { id: 'processedCount', defaultValue: '0' },
+                { id: 'successCount', defaultValue: '0' },
+                { id: 'failCount', defaultValue: '0' },
+                { id: 'uploadStatus', defaultValue: 'UPLOADING' }
+              ];
+
+              // 모든 UI 요소 초기화
+              uiElements.forEach(element => {
+                const el = document.getElementById(element.id);
+                if (el) {
+                  el.textContent = element.defaultValue;
+                }
+              });
+
+              console.log('Starting file upload...'); // 추가
+              console.log('Form data:', {
+                messageGroupId: formData.get('messageGroupId'),
+                fileName: formData.get('file').name
+              }); // 추가
+
+              const progressContainer = document.getElementById('progressContainer');
+              const status = document.getElementById('status');
+              const progressBarFill = document.getElementById('progressBarFill');
+
+              progressContainer.style.display = 'block';
+              progressBarFill.style.width = '0%';
+              status.style.display = 'none';
+
+              // 카운트 초기화
+              document.getElementById('totalCount').textContent = '0';
+              document.getElementById('processedCount').textContent = '0';
+              document.getElementById('successCount').textContent = '0';
+              document.getElementById('failCount').textContent = '0';
+              document.getElementById('uploadStatus').textContent = 'UPLOADING';
+
+              return fetch('http://localhost:8082/api/recipients/upload', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                  'Authorization': 'Bearer ' + token
+                },
+          <!--      credentials: 'include'-->
+              })
+                      .then(response => {
+                        console.log('Upload response status:', response.status); // 추가
+                        return handleFetchError(response);
+                      })
+                      .then(data => {
+                        console.log('Upload response data:', data); // 추가
+                        status.textContent = '파일 업로드 완료. 처리 진행중...';
+                        status.style.backgroundColor = '#d4edda';
+                        status.style.color = '#155724';
+                        return formData.get('messageGroupId');
+                      })
+                      .catch(error => {
+                        console.error('Upload error:', error);
+                        throw error;
+                      });
+            }
+
+            let statusCheckInterval = null;
+            const STATUS_CHECK_INTERVAL = 1000; // 1초 간격
+            const MAX_RETRIES = Infinity; // 무제한 재시도
+            let retryDelay = 2000; // 초기 재시도 대기 시간
+
+            function checkUploadStatus(messageGroupId) {
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+            }
+
+            const checkStatus = async () => {
+                try {
+                    const response = await fetch(`http://localhost:8082/api/recipients/status?messageGroupId=${messageGroupId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await handleFetchError(response);
+                    console.log("Status response:", data); // 디버깅용 로그 추가
+
+                    if (data.data && data.data.status) {
+                        updateProgressUI(data.data);
+
+                        // 상태에 따른 처리
+                        if (data.data.status === 'COMPLETED' || data.data.status === 'FAILED') {
+                            clearInterval(statusCheckInterval);
+                            showFinalStatus(data.data);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Status check error:", error);
+                }
+            };
+
+            checkStatus(); // 즉시 첫 번째 체크 실행
+            statusCheckInterval = setInterval(checkStatus, STATUS_CHECK_INTERVAL);
+        }
+
+
+      function showFinalStatus(progressData) {
+          const status = document.getElementById('status');
+
+          if (progressData.status === 'COMPLETED') {
+              status.textContent = `처리 완료 (성공: ${progressData.successCount}, 실패: ${progressData.failCount})`;
+              status.style.backgroundColor = '#d4edda';
+              status.style.color = '#155724';
+          } else {
+              status.textContent = '처리 실패';
+              status.style.backgroundColor = '#f8d7da';
+              status.style.color = '#721c24';
+          }
+
+          status.style.display = 'block';
+
+          if (statusCheckInterval) {
+              clearInterval(statusCheckInterval);
+          }
+      }
+
+
+
+              // 진행 상태 UI 초기화 함수 추가
+              function resetProgressUI() {
+                  const progressContainer = document.getElementById('progressContainer');
+                  progressContainer.style.display = 'none';
+
+                  document.getElementById('totalCount').textContent = '0';
+                  document.getElementById('processedCount').textContent = '0';
+                  document.getElementById('successCount').textContent = '0';
+                  document.getElementById('failCount').textContent = '0';
+                  document.getElementById('uploadStatus').textContent = '대기중';
+                  document.getElementById('progressBarFill').style.width = '0%';
+              }
+
+
+
+            // 진행 상태 UI 업데이트 함수 개선
+            function updateProgressUI(progressData) {
+                console.log('Updating Progress UI:', progressData);
+
+                const elements = {
+                    totalCount: document.getElementById('totalCount'),
+                    processedCount: document.getElementById('processedCount'),
+                    successCount: document.getElementById('successCount'),
+                    failCount: document.getElementById('failCount'),
+                    uploadStatus: document.getElementById('uploadStatus'),
+                    progressBarFill: document.getElementById('progressBarFill')
+                };
+
+                if (progressData) {
+                    elements.totalCount.textContent = progressData.totalCount || 0;
+                    elements.processedCount.textContent = progressData.processedCount || 0;
+                    elements.successCount.textContent = progressData.successCount || 0;
+                    elements.failCount.textContent = progressData.failCount || 0;
+                    elements.uploadStatus.textContent = progressData.status || 'PROCESSING';
+
+                    if (progressData.totalCount > 0) {
+                        const progress = (progressData.processedCount / progressData.totalCount) * 100;
+                        elements.progressBarFill.style.width = `${Math.min(progress, 100)}%`;
+                        elements.progressBarFill.style.backgroundColor =
+                            progressData.status === 'FAILED' ? '#dc3545' : '#28a745';
+                    }
+                } else {
+                    console.warn('No progress data received');
+                }
+            }
+
+
+            document.getElementById('uploadForm').addEventListener('submit', function(e) {
+              e.preventDefault();
+
+              const token = localStorage.getItem('token');
+              if (!token) {
+                alert('로그인이 필요합니다.');
+                window.location.href = '/login';
+                return;
+              }
+
+             // 필수 값 체크
+             const brandId = document.getElementById('brandSelect').value;
+             const templateId = document.getElementById('templateSelect').value;
+             const chatbotId = document.getElementById('chatbotSelect').value;
+
+             if (!brandId || !templateId || !chatbotId) {
+                 alert('브랜드, 템플릿, 발신번호를 모두 선택해주세요.');
+                 return;
+             }
+
+             const formData = new FormData(this);
+             formData.append('brandId', brandId);
+             formData.append('templateId', templateId);
+             formData.append('chatbotId', chatbotId);
+
+             const progressContainer = document.getElementById('progressContainer');
+             const status = document.getElementById('status');
+
+
+              // 진행 상태 초기화
+              progressContainer.style.display = 'block';
+              status.style.display = 'none';
+              document.getElementById('totalCount').textContent = '0';
+              document.getElementById('processedCount').textContent = '0';
+              document.getElementById('successCount').textContent = '0';
+              document.getElementById('failCount').textContent = '0';
+              document.getElementById('uploadStatus').textContent = 'UPLOADING';
+              document.getElementById('progressBarFill').style.width = '0%';
+
+              uploadFile(formData, token)
+                      .then(messageGroupId => {
+                        // 상태 확인 함수 호출
+                        checkUploadStatus(messageGroupId);
+                        return messageGroupId;
+                      })
+                      .catch(error => {
+                        console.error('Upload error:', error);
+                        progressContainer.style.display = 'none';
+                        status.style.display = 'block';
+                        status.textContent = '오류: ' + error.message;
+                        status.style.backgroundColor = '#f8d7da';
+                        status.style.color = '#721c24';
+                      });
             });
-  });
-</script>
-</body>
+        </script>
+   </body>
 </html>

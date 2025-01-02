@@ -8,10 +8,10 @@ import lombok.Getter;
 @Builder
 @Schema(description = "수신자 정보 업로드 응답")
 public class RecipientUploadResponse {
-   
+
    @Schema(description = "메시지그룹ID")
    private final String messageGroupId;
-   
+
    @Schema(description = "업로드 상태")
    private final boolean status;
 }

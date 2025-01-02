@@ -19,4 +19,3 @@ public class MessageSendEvent extends Event {
         this.recipientPhone = recipientPhone;
     }
 }
-

@@ -1,3 +1,8 @@
+bootJar {
+    archiveFileName = "common.jar"
+}
+
+
 plugins {
     id 'java-library'
 }

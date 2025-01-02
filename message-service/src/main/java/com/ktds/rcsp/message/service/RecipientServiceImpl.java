@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.time.LocalDateTime;
 
 
 @Slf4j
@@ -43,7 +44,7 @@ public class RecipientServiceImpl implements RecipientService {
     public RecipientServiceImpl(
             EventHubMessagePublisher eventPublisher,
             EncryptionService encryptionService,
-            MessageGroupSummaryRepository messageGroupSummaryRepository) {  // 생성자 주입 추가
+            MessageGroupSummaryRepository messageGroupSummaryRepository ) {  // 생성자 주입 추가
         this.eventPublisher = eventPublisher;
         this.encryptionService = encryptionService;
         this.messageGroupSummaryRepository = messageGroupSummaryRepository;
@@ -53,121 +54,171 @@ public class RecipientServiceImpl implements RecipientService {
     @Async("recipientProcessorExecutor")
     public void processRecipientFile(String messageGroupId, MultipartFile file, String masterId,
                                      String brandId, String templateId, String chatbotId) {
+        log.info("Start processing file for messageGroupId: {}", messageGroupId);
+
         try {
-            // 파일 데이터를 먼저 메모리에 복사
-            byte[] fileBytes = file.getBytes();
+            LocalDateTime now = LocalDateTime.now();
 
-            log.info("Start processing file for messageGroupId: {}", messageGroupId);
+            // 1. MessageGroupSummary 생성 및 저장
+            MessageGroupSummary messageGroup = MessageGroupSummary.builder()
+                    .messageGroupId(messageGroupId)
+                    .masterId(masterId)
+                    .brandId(brandId)
+                    .templateId(templateId)
+                    .chatbotId(chatbotId)
+                    .totalCount(0)
+                    .processedCount(0)
+                    .status("UPLOADING")
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
 
-            // MessageGroupSummary 저장 시도
-            try {
-                MessageGroupSummary messageGroup = MessageGroupSummary.builder()
-                        .messageGroupId(messageGroupId)
-                        .masterId(masterId)
-                        .brandId(brandId)
-                        .templateId(templateId)
-                        .chatbotId(chatbotId)
-                        .totalCount(0)
-                        .processedCount(0)
-                        .status("UPLOADING")
-                        .build();
+            messageGroupSummaryRepository.saveAndFlush(messageGroup);
+            log.info("MessageGroupSummary saved successfully: {}", messageGroupId);
 
-                messageGroupSummaryRepository.saveAndFlush(messageGroup);
-                log.info("MessageGroupSummary saved successfully: {}", messageGroupId);
-            } catch (Exception e) {
-                log.error("Failed to save MessageGroupSummary: {}", messageGroupId, e);
-                statusMap.put(messageGroupId, ProcessingStatus.FAILED);
-                throw e;
+            // 기존 로직 유지
+            initializeStatusMaps(messageGroupId);
+
+            byte[] fileContent = file.getBytes();
+            String filename = file.getOriginalFilename();
+
+            if (filename == null) {
+                throw new RuntimeException("파일명이 없습니다.");
             }
 
-
-            // 초기 상태 설정
-            statusMap.put(messageGroupId, ProcessingStatus.UPLOADING);
-            totalCountMap.put(messageGroupId, new AtomicInteger(0));
-            processedCountMap.put(messageGroupId, new AtomicInteger(0));
-            successCountMap.put(messageGroupId, new AtomicInteger(0));
-            failCountMap.put(messageGroupId, new AtomicInteger(0));
-
-            // 메모리의 byte[] 데이터로 처리
-            try (InputStream is = new ByteArrayInputStream(fileBytes)) {
-                String filename = file.getOriginalFilename();
-                if (filename == null) {
-                    throw new RuntimeException("파일명이 없습니다.");
-                }
-
+            try (InputStream is = new ByteArrayInputStream(fileContent)) {
                 if (filename.endsWith(".csv")) {
                     processCsvFile(messageGroupId, is);
                 } else if (filename.endsWith(".xlsx") || filename.endsWith(".xls")) {
                     processExcelFile(messageGroupId, is);
+                } else {
+                    throw new RuntimeException("지원하지 않는 파일 형식입니다.");
                 }
             }
 
+            // 2. 최종 상태 업데이트를 비동기 리스너에서 처리
+            // EventHubMessageSubscriber에서 모든 데이터 처리 후 상태 변경
+            log.info("File processing initiated for messageGroupId: {}", messageGroupId);
 
-            statusMap.put(messageGroupId, ProcessingStatus.COMPLETED);
-            log.info("File processing completed for messageGroupId: {}", messageGroupId);
-
-            // 일정 시간 후 데이터 정리 (예: 30분 후)
-            new Thread(() -> {
-                try {
-                    Thread.sleep(1800000); // 30분
-                    cleanupProcessingData(messageGroupId);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }).start();
-
-        } catch (
-                Exception e) {
+        } catch (Exception e) {
+            log.error("Error processing file: {}", e.getMessage(), e);
             updateMessageGroupStatus(messageGroupId, "FAILED");
-            log.error("Failed to process file", e);
             throw new RuntimeException("Failed to process file", e);
         }
     }
 
+    // 추가해야 할 초기화 메서드
+    private void initializeStatusMaps(String messageGroupId) {
+        statusMap.put(messageGroupId, ProcessingStatus.UPLOADING);
+        totalCountMap.put(messageGroupId, new AtomicInteger(0));
+        processedCountMap.put(messageGroupId, new AtomicInteger(0));
+        successCountMap.put(messageGroupId, new AtomicInteger(0));
+        failCountMap.put(messageGroupId, new AtomicInteger(0));
+    }
+
     private void updateMessageGroupStatus(String messageGroupId, String status) {
-        MessageGroupSummary messageGroup = messageGroupSummaryRepository.findById(messageGroupId)
-                .orElseThrow(() -> new RuntimeException("Message group not found"));
-        messageGroup.setStatus(status);
-        messageGroupSummaryRepository.save(messageGroup);
+        try {
+            MessageGroupSummary messageGroup = messageGroupSummaryRepository
+                    .findById(messageGroupId)
+                    .orElseThrow(() -> new RuntimeException("Message group not found"));
+            messageGroup.setStatus(status);
+            messageGroup.setUpdatedAt(LocalDateTime.now());
+            messageGroupSummaryRepository.save(messageGroup);
+        } catch (Exception e) {
+            log.error("Error updating message group status: {}", e.getMessage(), e);
+        }
     }
 
     @Override
     public UploadProgressResponse getUploadProgress(String messageGroupId) {
-        ProcessingStatus status = statusMap.getOrDefault(messageGroupId, ProcessingStatus.UPLOADING);
-        int total = totalCountMap.getOrDefault(messageGroupId, new AtomicInteger(0)).get();
-        int processed = processedCountMap.getOrDefault(messageGroupId, new AtomicInteger(0)).get();
-        int success = successCountMap.getOrDefault(messageGroupId, new AtomicInteger(0)).get();
-        int fail = failCountMap.getOrDefault(messageGroupId, new AtomicInteger(0)).get();
+        try {
+            MessageGroupSummary summary = messageGroupSummaryRepository
+                    .findById(messageGroupId)
+                    .orElseThrow(() -> new RuntimeException("Message group not found"));
 
-        return UploadProgressResponse.builder()
-                .totalCount(total)
-                .processedCount(processed)
-                .successCount(success)
-                .failCount(fail)
-                .status(status.name())
-                .build();
+            AtomicInteger success = successCountMap.get(messageGroupId);
+            AtomicInteger fail = failCountMap.get(messageGroupId);
+
+            return UploadProgressResponse.builder()
+                    .totalCount(summary.getTotalCount())
+                    .processedCount(summary.getProcessedCount())
+                    .successCount(success != null ? success.get() : summary.getProcessedCount())
+                    .failCount(fail != null ? fail.get() : 0)
+                    .status(summary.getStatus())
+                    .build();
+        } catch (Exception e) {
+            log.error("Error getting upload progress", e);
+            return UploadProgressResponse.builder()
+                    .status("FAILED")
+                    .build();
+        }
     }
 
 
-    private void processCsvFile(String messageGroupId, InputStream is) throws IOException {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-            CSVParser csvParser = CSVFormat.DEFAULT
-                    .withHeader()
-                    .withIgnoreHeaderCase(true)
-                    .withTrim(true)
-                    .parse(reader);
+//    @Override
+//    public UploadProgressResponse getUploadProgress(String messageGroupId) {
+//        ProcessingStatus status = statusMap.get(messageGroupId);
+//        AtomicInteger total = totalCountMap.get(messageGroupId);
+//        AtomicInteger processed = processedCountMap.get(messageGroupId);
+//        AtomicInteger success = successCountMap.get(messageGroupId);
+//        AtomicInteger fail = failCountMap.get(messageGroupId);
+//
+//        if (status == null || total == null || processed == null ||
+//                success == null || fail == null) {
+//            // 처리 중이 아닌 경우 DB에서 조회
+//            MessageGroupSummary summary = messageGroupSummaryRepository
+//                    .findById(messageGroupId)
+//                    .orElseThrow(() -> new RuntimeException("Message group not found"));
+//
+//            return UploadProgressResponse.builder()
+//                    .totalCount(summary.getTotalCount())
+//                    .processedCount(summary.getProcessedCount())
+//                    .successCount(0)  // DB에 없는 정보는 0으로
+//                    .failCount(0)
+//                    .status(summary.getStatus())
+//                    .build();
+//        }
+//
+//        return UploadProgressResponse.builder()
+//                .totalCount(total.get())
+//                .processedCount(processed.get())
+//                .successCount(success.get())
+//                .failCount(fail.get())
+//                .status(status.name())
+//                .build();
+//    }
 
-            // 전체 레코드 수 설정
-            totalCountMap.get(messageGroupId).set((int) csvParser.stream().count());
+
+    private void processCsvFile(String messageGroupId, InputStream is) throws IOException {
+        log.debug("Processing CSV file for messageGroupId: {}", messageGroupId);
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+             CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT
+                     .withFirstRecordAsHeader()
+                     .withIgnoreHeaderCase()
+                     .withTrim())) {
 
             for (var record : csvParser) {
-                String phoneNumber = record.get("phoneNumber");
-                String name = record.get("name");
-                if (isValidData(phoneNumber, name)) {
-                    publishToEventHub(messageGroupId, phoneNumber.trim(), name.trim());
+                try {
+                    String phoneNumber = record.get("phoneNumber");
+                    if (isValidPhoneNumber(phoneNumber)) {
+                        RecipientUploadEvent event = RecipientUploadEvent.builder()
+                                .messageGroupId(messageGroupId)
+                                .phoneNumber(phoneNumber.trim())
+                                .status("PROCESSING")
+                                .build();
+
+                        eventPublisher.publishUploadEvent(event);
+                        log.debug("Published event for phone: {}", phoneNumber);
+                    }
+                } catch (Exception e) {
+                    log.error("Error processing record: {}", e.getMessage(), e);
                 }
             }
         }
+    }
+
+    private boolean isValidPhoneNumber(String phoneNumber) {
+        return phoneNumber != null && !phoneNumber.trim().isEmpty();
     }
 
     private void processExcelFile(String messageGroupId, InputStream is) throws IOException {
@@ -182,8 +233,19 @@ public class RecipientServiceImpl implements RecipientService {
                 throw new RuntimeException("필수 컬럼을 찾을 수 없습니다.");
             }
 
-            // 전체 레코드 수 설정
-            totalCountMap.get(messageGroupId).set(sheet.getLastRowNum());
+            int actualRowCount = sheet.getPhysicalNumberOfRows() - 1;
+            AtomicInteger totalCount = totalCountMap.get(messageGroupId);
+            if (totalCount == null) {
+                log.error("상태 맵이 초기화되지 않았습니다. messageGroupId: {}", messageGroupId);
+                throw new RuntimeException("상태 맵이 초기화되지 않았습니다.");
+            }
+
+            totalCount.set(actualRowCount);
+
+            MessageGroupSummary messageGroup = messageGroupSummaryRepository.findById(messageGroupId)
+                    .orElseThrow(() -> new RuntimeException("Message group not found"));
+            messageGroup.setTotalCount(actualRowCount);
+            messageGroupSummaryRepository.save(messageGroup);
 
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
@@ -191,19 +253,40 @@ public class RecipientServiceImpl implements RecipientService {
                     String phoneNumber = getCellValue(row.getCell(phoneNumberColIdx));
                     String name = getCellValue(row.getCell(nameColIdx));
                     if (isValidData(phoneNumber, name)) {
-                        publishToEventHub(messageGroupId, phoneNumber.trim(), name.trim());
+                        // 여기서 이벤트를 직접 발행하고, publishToEventHub() 메소드는 호출하지 않음
+                        RecipientUploadEvent event = RecipientUploadEvent.builder()
+                                .messageGroupId(messageGroupId)
+                                .phoneNumber(phoneNumber)
+                                .name(name)
+                                .status(ProcessingStatus.UPLOADING.name())
+                                .build();
+                        eventPublisher.publishUploadEvent(event);
+
+                        // 카운터 업데이트
+                        AtomicInteger processedCount = processedCountMap.get(messageGroupId);
+                        AtomicInteger successCount = successCountMap.get(messageGroupId);
+                        if (processedCount != null && successCount != null) {
+                            processedCount.incrementAndGet();
+                            successCount.incrementAndGet();
+                        }
                     }
                 }
             }
         }
     }
 
-    private void publishToEventHub(String messageGroupId, String phoneNumber, String name) {
-        try {
-            // 전화번호와 이름을 암호화
-//            String encryptedPhoneNumber = encryptionService.encrypt(phoneNumber);
-//            String encryptedName = encryptionService.encrypt(name);
 
+    private void publishToEventHub(String messageGroupId, String phoneNumber, String name) {
+        AtomicInteger processedCount = processedCountMap.get(messageGroupId);
+        AtomicInteger successCount = successCountMap.get(messageGroupId);
+        AtomicInteger failCount = failCountMap.get(messageGroupId);
+
+        if (processedCount == null || successCount == null || failCount == null) {
+            log.error("상태 맵이 초기화되지 않았습니다. messageGroupId: {}", messageGroupId);
+            throw new RuntimeException("상태 맵이 초기화되지 않았습니다.");
+        }
+
+        try {
             RecipientUploadEvent event = RecipientUploadEvent.builder()
                     .messageGroupId(messageGroupId)
                     .phoneNumber(phoneNumber)
@@ -213,14 +296,15 @@ public class RecipientServiceImpl implements RecipientService {
 
             eventPublisher.publishUploadEvent(event);
 
-            // 처리 카운트 증가
-            processedCountMap.get(messageGroupId).incrementAndGet();
-            successCountMap.get(messageGroupId).incrementAndGet();
+            processedCount.incrementAndGet();
+            successCount.incrementAndGet();
 
             log.debug("Published data to EventHub - MessageGroupId: {}", messageGroupId);
         } catch (Exception e) {
-            failCountMap.get(messageGroupId).incrementAndGet();
-            log.error("Failed to encrypt and publish to EventHub - MessageGroupId: {}", messageGroupId, e);
+            failCount.incrementAndGet();
+            log.error("Failed to encrypt and publish to EventHub - MessageGroupId: {}, error: {}",
+                    messageGroupId, e.getMessage(), e);
+            throw new RuntimeException("EventHub 발행 실패", e);
         }
     }
 

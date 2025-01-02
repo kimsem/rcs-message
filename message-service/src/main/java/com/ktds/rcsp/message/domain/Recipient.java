@@ -48,7 +48,7 @@ public class Recipient {
 //    public Recipient(String messageGroupId, String encryptedPhone, String encryptedName, ProcessingStatus status) {
     public Recipient(String messageGroupId, String encryptedPhone, ProcessingStatus status) {
 
-            this.messageGroupId = messageGroupId;
+        this.messageGroupId = messageGroupId;
         this.encryptedPhone = encryptedPhone;
 //        this.encryptedName = encryptedName;
         this.status = status;
