@@ -81,7 +81,7 @@ spec:
             secretKeyRef:
               name: ${userid}-db-credentials
               key: AUTH_DB_PASSWORD
-		- name: EVENTHUB_CONNECTION_STRING
+        - name: EVENTHUB_CONNECTION_STRING
           valueFrom:
             secretKeyRef:
               name: eventhub-secret
@@ -137,7 +137,7 @@ spec:
     spec:
       containers:
       - name: basedata-service
-        image: ${message_image_path}
+        image: ${basedata_image_path}
         imagePullPolicy: Always
         env:
         - name: BASEDATA_DB_URL
