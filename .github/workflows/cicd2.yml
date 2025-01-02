@@ -37,7 +37,10 @@ jobs:
       - name: Build Applications
         run: |
           chmod +x gradlew
-          ./gradlew clean build -x test
+          ./gradlew auth-service:clean auth:build -x test
+          ./gradlew message-service:clean message:build -x test
+          ./gradlew history-service:clean history:build -x test
+          ./gradlew basedata-service:clean basedata:build -x test
 
       - name: Check build outputs
         run: |
