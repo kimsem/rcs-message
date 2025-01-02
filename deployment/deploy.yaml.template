@@ -31,6 +31,17 @@ data:
   JPA_DDL_AUTO: "update"
   JPA_SHOW_SQL: "true"
 
+  #EVENTHUB
+  EVENTHUB_CONNECTION_STRING: "Endpoint=sb://dg4us-eventhub-ns.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=ABUzYkX9Ca3F3Xo4b6bi0Mf+HuqRA12qA+AEhCsri3A="
+  # 수신번호 암호화 요청 큐
+  EVENTHUB_ENCRYPT_NUM_REQ: "number-encrypt-requests"
+  # 메시지 발송 요청 큐
+  EVENTHUB_MESSAGE_SEND_REQ: "rcs-message-send"
+  # 메시지 수신결과 응답 큐
+  EVENTHUB_MESSAGE_RESULT_RES: "rcs-message-result"
+  # 미사용 
+  ENCRYPTION_KEY: "your_encryption_key" 
+
 ---
 # Auth Service Deployment
 apiVersion: apps/v1
