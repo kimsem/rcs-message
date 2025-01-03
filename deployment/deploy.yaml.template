@@ -27,8 +27,6 @@ data:
   MONGODB_DB_PASSWORD: "p%40ssw0rd!%40"
   MONGODB_DATABASE: "rcs-history-db"
   
-  ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef"
-  
   # JPA Settings
   JPA_DDL_AUTO: "update"
   JPA_SHOW_SQL: "true"
@@ -325,6 +323,11 @@ spec:
             secretKeyRef:
               name: ${userid}-db-credentials
               key: MESSAGE_DB_PASSWORD
+	- name: ENCRYPTION_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: ENCRYPTION_KEY
         - name: EVENTHUB_CONNECTION_STRING
           valueFrom:
             configMapKeyRef:
