@@ -85,12 +85,12 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
-              key: ehub-connection-string
+              key: EVENTHUB_CONNECTION_STRING
         - name: azure.eventhub.connection-string
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
-              key: ehub-connection-string
+              key: EVENTHUB_CONNECTION_STRING
         - name: EVENTHUB_ENCRYPT_NUM_REQ
           value: "number-encrypt-requests"
         - name: EVENTHUB_MESSAGE_SEND_REQ
@@ -164,12 +164,12 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
-              key: ehub-connection-string
+              key: EVENTHUB_CONNECTION_STRING
         - name: azure.eventhub.connection-string
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
-              key: ehub-connection-string
+              key: EVENTHUB_CONNECTION_STRING
         - name: EVENTHUB_ENCRYPT_NUM_REQ
           value: "number-encrypt-requests"
         - name: EVENTHUB_MESSAGE_SEND_REQ
@@ -243,12 +243,12 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
-              key: ehub-connection-string
+              key: EVENTHUB_CONNECTION_STRING
         - name: azure.eventhub.connection-string
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
-              key: ehub-connection-string
+              key: EVENTHUB_CONNECTION_STRING
         - name: EVENTHUB_ENCRYPT_NUM_REQ
           value: "number-encrypt-requests"
         - name: EVENTHUB_MESSAGE_SEND_REQ
@@ -322,12 +322,12 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
-              key: ehub-connection-string 
+              key: EVENTHUB_CONNECTION_STRING 
         - name: azure.eventhub.connection-string
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
-              key: ehub-connection-string
+              key: EVENTHUB_CONNECTION_STRING
         - name: EVENTHUB_ENCRYPT_NUM_REQ
           value: "number-encrypt-requests"
         - name: EVENTHUB_MESSAGE_SEND_REQ
