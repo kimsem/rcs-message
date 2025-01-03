@@ -22,7 +22,7 @@ data:
   AUTH_DB_USERNAME: "dg4s"
   AUTH_DB_PASSWORD: "p@ssw0rd!@"
   
-  MONGODB_URI: "mongodb+srv://dg4us-mongo.mongocluster.cosmos.azure.com/"
+  MONGODB_URI: 'mongodb+srv://dg4us-mongo.mongocluster.cosmos.azure.com/'
   MONGODB_DB_USERNAME: "dg4sadm"
   MONGODB_DB_PASSWORD: "p@ssw0rd!@"
   MONGODB_DATABASE: "rcs-history-db"
