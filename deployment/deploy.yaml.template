@@ -86,7 +86,7 @@ spec:
             configMapKeyRef:
               name: ${userid}-rcs-config
               key: ehub-connection-string
-		- name: azure.eventhub.connection-string
+        - name: azure.eventhub.connection-string
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
@@ -97,7 +97,7 @@ spec:
           value: "rcs-message-send"
         - name: EVENTHUB_MESSAGE_RESULT_RES
           value: "rcs-message-result"
-		resources:
+      resources:
           requests:
             cpu: 250m
             memory: 512Mi
@@ -165,7 +165,7 @@ spec:
             configMapKeyRef:
               name: ${userid}-rcs-config
               key: ehub-connection-string
-		- name: azure.eventhub.connection-string
+        - name: azure.eventhub.connection-string
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
@@ -244,7 +244,7 @@ spec:
             configMapKeyRef:
               name: ${userid}-rcs-config
               key: ehub-connection-string
-		- name: azure.eventhub.connection-string
+        - name: azure.eventhub.connection-string
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
@@ -322,8 +322,8 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
-              key: ehub-connection-string
-		- name: azure.eventhub.connection-string
+              key: ehub-connection-string 
+        - name: azure.eventhub.connection-string
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
