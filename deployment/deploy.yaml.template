@@ -22,10 +22,12 @@ data:
   AUTH_DB_USERNAME: "dg4s"
   AUTH_DB_PASSWORD: "p@ssw0rd!@"
   
-  MONGODB_URI: 'mongodb+srv://dg4us-mongo.mongocluster.cosmos.azure.com/'
+  MONGODB_URI: "dg4us-mongo.mongocluster.cosmos.azure.com"
   MONGODB_DB_USERNAME: "dg4sadm"
-  MONGODB_DB_PASSWORD: "p@ssw0rd!@"
+  MONGODB_DB_PASSWORD: "p%40ssw0rd!%40"
   MONGODB_DATABASE: "rcs-history-db"
+  
+  ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef"
   
   # JPA Settings
   JPA_DDL_AUTO: "update"
@@ -224,21 +226,26 @@ spec:
         image: ${history_image_path}
         imagePullPolicy: Always
         env:
-        - name: HISTORY_DB_URL
+        - name: MONGODB_URI
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
-              key: HISTORY_DB_URL
-        - name: HISTORY_DB_USERNAME
+              key: MONGODB_URI
+        - name: MONGODB_DB_USERNAME
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
-              key: HISTORY_DB_USERNAME
-        - name: HISTORY_DB_PASSWORD
+              key: MONGODB_DB_USERNAME
+		- name: MONGODB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: MONGODB_DATABASE
+        - name: MONGODB_DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: ${userid}-db-credentials
-              key: HISTORY_DB_PASSWORD
+              key: MONGODB_DB_PASSWORD
         - name: EVENTHUB_CONNECTION_STRING
           valueFrom:
             configMapKeyRef:
