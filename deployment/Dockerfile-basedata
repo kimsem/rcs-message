@@ -1,3 +1,4 @@
 FROM eclipse-temurin:17-jdk-alpine
+COPY basedata-service/src/main/resources/application.yml /config/application.yml
 COPY basedata-service/build/libs/rcs-basedata.jar app.jar
 ENTRYPOINT ["java","-jar","/app.jar"]

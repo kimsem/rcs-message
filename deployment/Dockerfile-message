@@ -1,3 +1,4 @@
 FROM eclipse-temurin:17-jdk-alpine
+COPY message-service/src/main/resources/application.yml /config/application.yml
 COPY message-service/build/libs/rcs-message.jar app.jar
 ENTRYPOINT ["java","-jar","/app.jar"]

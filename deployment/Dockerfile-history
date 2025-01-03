@@ -1,3 +1,4 @@
 FROM eclipse-temurin:17-jdk-alpine
+COPY history-service/src/main/resources/application.yml /config/application.yml
 COPY history-service/build/libs/rcs-history.jar app.jar
 ENTRYPOINT ["java","-jar","/app.jar"]

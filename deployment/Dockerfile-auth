@@ -1,3 +1,4 @@
 FROM eclipse-temurin:17-jdk-alpine
+COPY auth-service/src/main/resources/application.yml /config/application.yml
 COPY auth-service/build/libs/rcs-auth.jar app.jar
 ENTRYPOINT ["java","-jar","/app.jar"]
