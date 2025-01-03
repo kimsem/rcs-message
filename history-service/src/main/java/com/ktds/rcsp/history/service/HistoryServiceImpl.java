@@ -9,15 +9,15 @@ import com.ktds.rcsp.history.dto.MessageHistoryResponse;
 import com.ktds.rcsp.history.dto.MessageHistorySearchRequest;
 import com.ktds.rcsp.history.repository.HistoryRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.cache.annotation.Cacheable;
-
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class HistoryServiceImpl implements HistoryService {
@@ -117,13 +117,6 @@ public class HistoryServiceImpl implements HistoryService {
            
        history.updateStatus(MessageStatus.valueOf(event.getStatus()), event.getResultCode(), event.getResultMessage());
        historyRepository.save(history);
-   }
-
-   @Cacheable(value = "messageHistory", key = "#messageId")
-   public MessageHistoryResponse getMessageHistory(String messageId) {
-       return historyRepository.findById(messageId)
-               .map(this::convertToResponse)
-               .orElseThrow(() -> new RuntimeException("Message history not found: " + messageId));
    }
 
    private MessageHistoryResponse convertToResponse(MessageHistory entity) {
