@@ -83,8 +83,13 @@ spec:
               key: AUTH_DB_PASSWORD
         - name: EVENTHUB_CONNECTION_STRING
           valueFrom:
-            secretKeyRef:
-              name: eventhub-secret
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: ehub-connection-string
+        - name: azure.eventhub.connection-string
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
               key: ehub-connection-string
         - name: EVENTHUB_ENCRYPT_NUM_REQ
           value: "number-encrypt-requests"
@@ -92,7 +97,7 @@ spec:
           value: "rcs-message-send"
         - name: EVENTHUB_MESSAGE_RESULT_RES
           value: "rcs-message-result"
-        resources:
+      resources:
           requests:
             cpu: 250m
             memory: 512Mi
@@ -157,8 +162,13 @@ spec:
               key: BASEDATA_DB_PASSWORD
         - name: EVENTHUB_CONNECTION_STRING
           valueFrom:
-            secretKeyRef:
-              name: eventhub-secret
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: ehub-connection-string
+        - name: azure.eventhub.connection-string
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
               key: ehub-connection-string
         - name: EVENTHUB_ENCRYPT_NUM_REQ
           value: "number-encrypt-requests"
@@ -231,8 +241,13 @@ spec:
               key: HISTORY_DB_PASSWORD
         - name: EVENTHUB_CONNECTION_STRING
           valueFrom:
-            secretKeyRef:
-              name: eventhub-secret
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: ehub-connection-string
+        - name: azure.eventhub.connection-string
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
               key: ehub-connection-string
         - name: EVENTHUB_ENCRYPT_NUM_REQ
           value: "number-encrypt-requests"
@@ -305,8 +320,13 @@ spec:
               key: MESSAGE_DB_PASSWORD
         - name: EVENTHUB_CONNECTION_STRING
           valueFrom:
-            secretKeyRef:
-              name: eventhub-secret
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: ehub-connection-string 
+        - name: azure.eventhub.connection-string
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
               key: ehub-connection-string
         - name: EVENTHUB_ENCRYPT_NUM_REQ
           value: "number-encrypt-requests"
