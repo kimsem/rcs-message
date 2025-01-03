@@ -118,7 +118,7 @@ spec:
     userid: ${userid}
   ports:
     - port: 8080
-      targetPort: 8080
+      targetPort: 8081
   type: LoadBalancer
   
 ---
@@ -197,7 +197,7 @@ spec:
     userid: ${userid}
   ports:
     - port: 8080
-      targetPort: 8080
+      targetPort: 8084
   type: LoadBalancer
   
 ---
@@ -234,7 +234,7 @@ spec:
             configMapKeyRef:
               name: ${userid}-rcs-config
               key: MONGODB_DB_USERNAME
-		- name: MONGODB_DATABASE
+        - name: MONGODB_DATABASE
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
@@ -281,7 +281,7 @@ spec:
     userid: ${userid}
   ports:
     - port: 8080
-      targetPort: 8080
+      targetPort: 8083
   type: LoadBalancer
 
 ---
@@ -323,7 +323,7 @@ spec:
             secretKeyRef:
               name: ${userid}-db-credentials
               key: MESSAGE_DB_PASSWORD
-	- name: ENCRYPTION_KEY
+        - name: ENCRYPTION_KEY
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
@@ -365,5 +365,5 @@ spec:
     userid: ${userid}
   ports:
     - port: 8080
-      targetPort: 8080
+      targetPort: 8082
   type: LoadBalancer
