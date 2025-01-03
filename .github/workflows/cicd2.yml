@@ -158,7 +158,7 @@ jobs:
             --from-literal=result-hub-name='rcs-message-result' \
             --from-literal=consumer-group='$Default' \
 	    --from-literal=azure.eventhub.connection-string='${{ secrets.EVENTHUB_CONNECTION_STRING }}' \
-            --from-literal=azure.eventhub.name='${{ secrets.EVENTHUB_NAME }}' \
+     --from-literal=azure.eventhub.name='${{ secrets.EVENTHUB_NAME }}' \
 	    --from-literal=azure.storage.connection-string='${{ secrets.STORAGE_CONNECTION_STRING }}' \
             --dry-run=client -o yaml | kubectl apply -f -
 			
