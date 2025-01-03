@@ -154,7 +154,7 @@ jobs:
             --namespace ${APP_NAMESPACE} \
             --from-literal=AUTH_DB_PASSWORD='${{ secrets.RCS_DB_PASSWORD }}' \
             --from-literal=BASEDATA_DB_PASSWORD='${{ secrets.RCS_DB_PASSWORD }}' \
-            --from-literal=HISTORY_DB_PASSWORD='${{ secrets.RCS_DB_PASSWORD }}' \
+            --from-literal=MONGODB_DB_PASSWORD='${{ secrets.MONGODB_PASSWORD }}' \
             --from-literal=MESSAGE_DB_PASSWORD='${{ secrets.RCS_DB_PASSWORD }}' \
             --dry-run=client -o yaml | kubectl apply -f -
 
