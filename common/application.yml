@@ -6,6 +6,8 @@ logging:
   level:
     com.ktds.rcsp: DEBUG
 
+
+
 azure:
   eventhub:
     connection-string: ${EVENTHUB_CONNECTION_STRING}

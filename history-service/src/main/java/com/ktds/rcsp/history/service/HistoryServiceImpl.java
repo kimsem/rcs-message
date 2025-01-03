@@ -1,6 +1,7 @@
 package com.ktds.rcsp.history.service;
 
 import com.ktds.rcsp.common.dto.PageResponse;
+import com.ktds.rcsp.common.event.MessageResultEvent;
 import com.ktds.rcsp.common.event.MessageSendEvent;
 import com.ktds.rcsp.history.domain.MessageHistory;
 import com.ktds.rcsp.history.domain.MessageStatus;
@@ -8,14 +9,15 @@ import com.ktds.rcsp.history.dto.MessageHistoryResponse;
 import com.ktds.rcsp.history.dto.MessageHistorySearchRequest;
 import com.ktds.rcsp.history.repository.HistoryRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.CacheEvict;
+import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class HistoryServiceImpl implements HistoryService {
@@ -101,30 +103,20 @@ public class HistoryServiceImpl implements HistoryService {
 
    @Override
    @Transactional
-   @CacheEvict(value = "messageHistory", key = "#history.messageId")
-   public MessageHistoryResponse saveMessageHistory(MessageSendEvent event) {
+   public void saveMessageHistory(MessageSendEvent event) {
        MessageHistory entity = convertToEntity(event);
-       MessageHistory savedEntity = historyRepository.save(entity);
-       return convertToResponse(savedEntity);
+       historyRepository.save(entity);
    }
 
 
-    @Override
+   @Override
    @Transactional
-   @CacheEvict(value = "messageHistory", key = "#messageId")
-   public void updateMessageStatus(String messageId, String status, String resultCode, String resultMessage) {
-       MessageHistory history = historyRepository.findById(messageId)
-               .orElseThrow(() -> new RuntimeException("Message history not found: " + messageId));
+   public void updateMessageStatus(MessageResultEvent event) {
+       MessageHistory history = historyRepository.findById(event.getMessageId())
+               .orElseThrow(() -> new RuntimeException("Message history not found: " + event.getMessageId()));
            
-       history.updateStatus(MessageStatus.valueOf(status), resultCode, resultMessage);
+       history.updateStatus(MessageStatus.valueOf(event.getStatus()), event.getResultCode(), event.getResultMessage());
        historyRepository.save(history);
-   }
-
-   @Cacheable(value = "messageHistory", key = "#messageId")
-   public MessageHistoryResponse getMessageHistory(String messageId) {
-       return historyRepository.findById(messageId)
-               .map(this::convertToResponse)
-               .orElseThrow(() -> new RuntimeException("Message history not found: " + messageId));
    }
 
    private MessageHistoryResponse convertToResponse(MessageHistory entity) {
@@ -151,7 +143,9 @@ public class HistoryServiceImpl implements HistoryService {
                .templateId(event.getTemplateId())
                .chatbotId(event.getChatbotId())
                .content(event.getContent())
+               .encryptedPhone(event.getRecipientPhone())
                .status(MessageStatus.valueOf(event.getStatus()))
+               .createdAt(LocalDateTime.now())
                .build();
    }
 }

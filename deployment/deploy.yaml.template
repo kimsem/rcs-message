@@ -1,45 +1,49 @@
+# ConfigMap for Application Settings
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ${userid}-rcs-config
   namespace: ${app_namespace}
 data:
+  # Application Settings
   APP_NAME: "rcs"
   SERVER_PORT: "8080"
-
-  #Message_DB
-  MESSAGE_DB_URL=jdbc:postgresql://10.0.215.208:5432/rcs-message-db
-  MESSAGE_DB_USERNAME=dg4s
-  MESSAGE_DB_PASSWORD=p@ssw0rd!@
-  #BASEDATA_DB
-  BASEDATA_DB_URL=jdbc:postgresql://10.0.43.236:5432/rcs-base-db
-  MESSAGE_DB_USERNAME=dg4s
-  MESSAGE_DB_PASSWORD=p@ssw0rd!@
-  #AUTH_DB
-  BASEDATA_DB_URL=jdbc:postgresql://10.0.195.172:5432/rcs-auth-db
-  MESSAGE_DB_USERNAME=dg4s
-  MESSAGE_DB_PASSWORD=p@ssw0rd!@
-  #MONGO_DB
-  MONGODB_URI=mongodb+srv://dg4us-mongo.mongocluster.cosmos.azure.com/
-  MONGODB_DB_USERNAME=dg4sadm
-  MONGODB_DB_PASSWORD=p@ssw0rd!@
-  MONGODB_DATABASE=rcs-history-db
-    
-  # JPA 설정
+  
+  # Database Connections
+  MESSAGE_DB_URL: "jdbc:postgresql://10.0.215.208:5432/rcs-message-db"
+  MESSAGE_DB_USERNAME: "dg4s"
+  MESSAGE_DB_PASSWORD: "p@ssw0rd!@"
+  
+  BASEDATA_DB_URL: "jdbc:postgresql://10.0.43.236:5432/rcs-base-db"
+  BASEDATA_DB_USERNAME: "dg4s"
+  BASEDATA_DB_PASSWORD: "p@ssw0rd!@"
+  
+  AUTH_DB_URL: "jdbc:postgresql://10.0.195.172:5432/rcs-auth-db"
+  AUTH_DB_USERNAME: "dg4s"
+  AUTH_DB_PASSWORD: "p@ssw0rd!@"
+  
+  MONGODB_URI: "mongodb+srv://dg4us-mongo.mongocluster.cosmos.azure.com/"
+  MONGODB_DB_USERNAME: "dg4sadm"
+  MONGODB_DB_PASSWORD: "p@ssw0rd!@"
+  MONGODB_DATABASE: "rcs-history-db"
+  
+  # JPA Settings
   JPA_DDL_AUTO: "update"
   JPA_SHOW_SQL: "true"
 
   #EVENTHUB
-  EVENTHUB_CONNECTION_STRING=Endpoint=sb://dg4us-eventhub-ns.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=ABUzYkX9Ca3F3Xo4b6bi0Mf+HuqRA12qA+AEhCsri3A=
+  EVENTHUB_CONNECTION_STRING: "Endpoint=sb://dg4us-eventhub-ns.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=ABUzYkX9Ca3F3Xo4b6bi0Mf+HuqRA12qA+AEhCsri3A="
   # 수신번호 암호화 요청 큐
-  EVENTHUB_ENCRYPT_NUM_REQ=number-encrypt-requests
+  EVENTHUB_ENCRYPT_NUM_REQ: "number-encrypt-requests"
   # 메시지 발송 요청 큐
-  EVENTHUB_MESSAGE_SEND_REQ=rcs-message-send
+  EVENTHUB_MESSAGE_SEND_REQ: "rcs-message-send"
   # 메시지 수신결과 응답 큐
-  EVENTHUB_MESSAGE_RESULT_RES=rcs-message-result
-  # 미사용 ENCRYPTION_KEY=your_encryption_key 
-  
+  EVENTHUB_MESSAGE_RESULT_RES: "rcs-message-result"
+  # 미사용 
+  ENCRYPTION_KEY: "your_encryption_key" 
+
 ---
+# Auth Service Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -59,18 +63,45 @@ spec:
     spec:
       containers:
       - name: auth-service
-        image: ${command_image_path}
+        image: ${auth_image_path}
         imagePullPolicy: Always
-        ports:
-        - containerPort: 8080        
+        env:
+        - name: AUTH_DB_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: AUTH_DB_URL
+        - name: AUTH_DB_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: AUTH_DB_USERNAME
+        - name: AUTH_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ${userid}-db-credentials
+              key: AUTH_DB_PASSWORD
+        - name: EVENTHUB_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: eventhub-secret
+              key: ehub-connection-string
+        - name: EVENTHUB_ENCRYPT_NUM_REQ
+          value: "number-encrypt-requests"
+        - name: EVENTHUB_MESSAGE_SEND_REQ
+          value: "rcs-message-send"
+        - name: EVENTHUB_MESSAGE_RESULT_RES
+          value: "rcs-message-result"
         resources:
           requests:
-            cpu: ${resources_requests_cpu}
-            memory: ${resources_requests_memory}
+            cpu: 250m
+            memory: 512Mi
           limits:
-            cpu: ${resources_limits_cpu}
-            memory: ${resources_limits_memory}
+            cpu: 500m
+            memory: 1024Mi
+
 ---
+# Auth Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -81,10 +112,12 @@ spec:
     app: auth-service
     userid: ${userid}
   ports:
-  - port: 8080
-    targetPort: 8080
+    - port: 8080
+      targetPort: 8080
   type: LoadBalancer
+  
 ---
+# BASEDATA Service Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -104,37 +137,45 @@ spec:
     spec:
       containers:
       - name: basedata-service
-        image: ${query_image_path}
+        image: ${basedata_image_path}
         imagePullPolicy: Always
-        ports:
-        - containerPort: 8080
-        envFrom:
-        - configMapRef:
-            name: ${userid}-rcs-config
         env:
-		- name: BASEDATA_DB_URL
-            valueFrom: 
-              configMapKeyRef:
-                 name: ${userid}-rcs-config
-                 key: BASEDATA_DB_URL
-		- name: BASEDATA_DB_USERNAME
-            valueFrom: 
-              configMapKeyRef:
-                 name: ${userid}-rcs-config
-                 key: BASEDATA_DB_USERNAME
+        - name: BASEDATA_DB_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: BASEDATA_DB_URL
+        - name: BASEDATA_DB_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: BASEDATA_DB_USERNAME
         - name: BASEDATA_DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: ${userid}-db-credentials
               key: BASEDATA_DB_PASSWORD
+        - name: EVENTHUB_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: eventhub-secret
+              key: ehub-connection-string
+        - name: EVENTHUB_ENCRYPT_NUM_REQ
+          value: "number-encrypt-requests"
+        - name: EVENTHUB_MESSAGE_SEND_REQ
+          value: "rcs-message-send"
+        - name: EVENTHUB_MESSAGE_RESULT_RES
+          value: "rcs-message-result"
         resources:
           requests:
-            cpu: ${resources_requests_cpu}
-            memory: ${resources_requests_memory}
+            cpu: 250m
+            memory: 512Mi
           limits:
-            cpu: ${resources_limits_cpu}
-            memory: ${resources_limits_memory}
+            cpu: 500m
+            memory: 1024Mi
+
 ---
+# BASEDATA Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -145,10 +186,12 @@ spec:
     app: basedata-service
     userid: ${userid}
   ports:
-  - port: 8080
-    targetPort: 8080
+    - port: 8080
+      targetPort: 8080
   type: LoadBalancer
+  
 ---
+# HISTORY Service Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -168,58 +211,45 @@ spec:
     spec:
       containers:
       - name: history-service
-        image: ${query_image_path}
+        image: ${history_image_path}
         imagePullPolicy: Always
-        ports:
-        - containerPort: 8080
-        envFrom:
-        - configMapRef:
-            name: ${userid}-rcs-config
         env:
-		- name: MONGODB_URI
-            valueFrom: 
-              configMapKeyRef:
-                 name: ${userid}-rcs-config
-                 key: MONGODB_URI
-		- name: MONGODB_DATABASE
-            valueFrom: 
-              configMapKeyRef:
-                 name: ${userid}-rcs-config
-                 key: MONGODB_DATABASE
-        - name: MONGODB_DB_USERNAME
-            valueFrom: 
-              configMapKeyRef:
-                 name: ${userid}-rcs-config
-                 key: MONGODB_DB_USERNAME
-        - name: MONGODB_DB_PASSWORD
+        - name: HISTORY_DB_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: HISTORY_DB_URL
+        - name: HISTORY_DB_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: HISTORY_DB_USERNAME
+        - name: HISTORY_DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: ${userid}-db-credentials
-              key: MONGODB_DB_PASSWORD
-        - name: STORAGE_CONNECTION_STRING
-          valueFrom:
-            secretKeyRef:
-              name: storage-secret
-              key: connection-string
+              key: HISTORY_DB_PASSWORD
         - name: EVENTHUB_CONNECTION_STRING
           valueFrom:
             secretKeyRef:
               name: eventhub-secret
-              key: plan-connection-string
+              key: ehub-connection-string
         - name: EVENTHUB_ENCRYPT_NUM_REQ
           value: "number-encrypt-requests"
         - name: EVENTHUB_MESSAGE_SEND_REQ
           value: "rcs-message-send"
         - name: EVENTHUB_MESSAGE_RESULT_RES
-          value: "rcs-message-result" 		  
+          value: "rcs-message-result"
         resources:
           requests:
-            cpu: ${resources_requests_cpu}
-            memory: ${resources_requests_memory}
+            cpu: 250m
+            memory: 512Mi
           limits:
-            cpu: ${resources_limits_cpu}
-            memory: ${resources_limits_memory}
+            cpu: 500m
+            memory: 1024Mi
+
 ---
+# History Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -230,10 +260,12 @@ spec:
     app: history-service
     userid: ${userid}
   ports:
-  - port: 8080
-    targetPort: 8080
+    - port: 8080
+      targetPort: 8080
   type: LoadBalancer
+
 ---
+# Message Service Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -253,73 +285,45 @@ spec:
     spec:
       containers:
       - name: message-service
-        image: ${query_image_path}
+        image: ${message_image_path}
         imagePullPolicy: Always
-        ports:
-        - containerPort: 8080
-        envFrom:
-        - configMapRef:
-            name: ${userid}-rcs-config
         env:
-		- name: MESSAGE_DB_URL
-            valueFrom: 
-              configMapKeyRef:
-                 name: ${userid}-rcs-config
-                 key: MESSAGE_DB_URL
-		- name: MESSAGE_DB_USERNAME
-            valueFrom: 
-              configMapKeyRef:
-                 name: ${userid}-rcs-config
-                 key: MESSAGE_DB_USERNAME
+        - name: MESSAGE_DB_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: MESSAGE_DB_URL
+        - name: MESSAGE_DB_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: MESSAGE_DB_USERNAME
         - name: MESSAGE_DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: ${userid}-db-credentials
               key: MESSAGE_DB_PASSWORD
-		- name: MONGODB_URI
-            valueFrom: 
-              configMapKeyRef:
-                 name: ${userid}-rcs-config
-                 key: MONGODB_URI
-		- name: MONGODB_DATABASE
-            valueFrom: 
-              configMapKeyRef:
-                 name: ${userid}-rcs-config
-                 key: MONGODB_DATABASE
-        - name: MONGODB_DB_USERNAME
-            valueFrom: 
-              configMapKeyRef:
-                 name: ${userid}-rcs-config
-                 key: MONGODB_DB_USERNAME
-        - name: MONGODB_DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: ${userid}-db-credentials
-              key: MONGODB_DB_PASSWORD
-        - name: STORAGE_CONNECTION_STRING
-          valueFrom:
-            secretKeyRef:
-              name: storage-secret
-              key: connection-string
         - name: EVENTHUB_CONNECTION_STRING
           valueFrom:
             secretKeyRef:
               name: eventhub-secret
-              key: plan-connection-string
+              key: ehub-connection-string
         - name: EVENTHUB_ENCRYPT_NUM_REQ
           value: "number-encrypt-requests"
         - name: EVENTHUB_MESSAGE_SEND_REQ
           value: "rcs-message-send"
         - name: EVENTHUB_MESSAGE_RESULT_RES
-          value: "rcs-message-result" 		  
+          value: "rcs-message-result"
         resources:
           requests:
-            cpu: ${resources_requests_cpu}
-            memory: ${resources_requests_memory}
+            cpu: 250m
+            memory: 512Mi
           limits:
-            cpu: ${resources_limits_cpu}
-            memory: ${resources_limits_memory}
+            cpu: 500m
+            memory: 1024Mi
+
 ---
+# Message Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -330,6 +334,6 @@ spec:
     app: message-service
     userid: ${userid}
   ports:
-  - port: 8080
-    targetPort: 8080
+    - port: 8080
+      targetPort: 8080
   type: LoadBalancer

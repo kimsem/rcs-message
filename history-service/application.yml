@@ -3,10 +3,10 @@ spring:
     name: history-service
   data:
     mongodb:
-      uri: ${MONGODB_URI}
-      database: ${MONGODB_DATABASE}
+      uri: mongodb+srv://${MONGODB_DB_USERNAME}:${MONGODB_DB_PASSWORD}@${MONGODB_URI}/${MONGODB_DATABASE}?retryWrites=true&w=majority
       username: ${MONGODB_DB_USERNAME}
       password: ${MONGODB_DB_PASSWORD}
+      database: ${MONGODB_DATABASE}
 azure:
   eventhub:
     connection-string: ${EVENTHUB_CONNECTION_STRING}
@@ -21,3 +21,12 @@ azure:
       history: history-consumer-group
 server:
   port: 8083
+
+logging:
+  level:
+    org:
+      springframework:
+        data:
+          mongodb:
+            core:
+              MongoTemplate: DEBUG

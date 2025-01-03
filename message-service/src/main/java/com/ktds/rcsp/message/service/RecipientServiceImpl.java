@@ -2,7 +2,6 @@ package com.ktds.rcsp.message.service;
 
 import com.ktds.rcsp.common.event.RecipientUploadEvent;
 import com.ktds.rcsp.message.domain.MessageGroup;
-import com.ktds.rcsp.message.domain.MessageGroupStatus;
 import com.ktds.rcsp.message.domain.ProcessingStatus;
 import com.ktds.rcsp.message.domain.Recipient;
 import com.ktds.rcsp.message.infra.EncryptionService;
@@ -22,6 +21,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -47,20 +49,32 @@ public class RecipientServiceImpl implements RecipientService {
                     .build()
                     .parse(reader);
 
+            // 수신자 정보를 처리할 스레드 수
+            List<CompletableFuture<Void>> futures = new ArrayList<>();
+
             int totalCount = 0;
             for (CSVRecord record : csvParser) {
                 String phoneNumber = record.get("phoneNumber");
 
-                // 수신자 정보 처리 후 EventHub에 메시지 발행
-                RecipientUploadEvent event = RecipientUploadEvent.builder()
-                        .messageGroupId(messageGroupId) // 메시지 그룹 ID
-                        .phoneNumber(phoneNumber) // 수신번호
-                        .build();
+                // 비동기 처리로 이벤트 발행
+                CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                    try {
+                        RecipientUploadEvent event = RecipientUploadEvent.builder()
+                                .messageGroupId(messageGroupId)
+                                .phoneNumber(phoneNumber)
+                                .build();
+                        // EventHub에 이벤트 발행
+                        eventPublisher.publishUploadEvent(event);
+                    } catch (Exception e) {
+                        log.error("Error processing recipient with phone number: {}", phoneNumber, e);
+                    }
+                });
 
-                // EventHub에 이벤트 발행
-                eventPublisher.publishUploadEvent(event);
-                totalCount++;
+                futures.add(future);
             }
+
+            // 모든 비동기 작업 완료 기다리기
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
             // 처리된 수신자 수 로깅
             log.info("Processed {} recipients for message group: {}", totalCount, messageGroupId);

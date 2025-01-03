@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Azure Event Hub를 통해 이벤트를 발행하는 Publisher 클래스
@@ -22,6 +24,7 @@ public class EventHubMessagePublisher {
 
     private final EventHubProducerClient numberEncryptProducerClient;
     private final EventHubProducerClient messageSendProducerClient;
+    private final ExecutorService executorService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -31,16 +34,18 @@ public class EventHubMessagePublisher {
      * @throws RuntimeException 이벤트 발행 실패 시
      */
     public void publishUploadEvent(RecipientUploadEvent event) {
-        try {
-            String eventData = objectMapper.writeValueAsString(event);
-            EventData eventDataObj = new EventData(eventData.getBytes());
-            numberEncryptProducerClient.send(Collections.singletonList(eventDataObj));
+        CompletableFuture.runAsync(() -> {
+            try {
+                String eventData = objectMapper.writeValueAsString(event);
+                EventData eventDataObj = new EventData(eventData.getBytes());
+                numberEncryptProducerClient.send(Collections.singletonList(eventDataObj));
 
-            log.info("Published recipient upload event: {}", event.getMessageGroupId());
-        } catch (Exception e) {
-            log.error("Error publishing recipient upload event", e);
-            throw new RuntimeException("Failed to publish recipient upload event", e);
-        }
+                log.info("Published recipient upload event: {}", event.getMessageGroupId());
+            } catch (Exception e) {
+                log.error("Error publishing recipient upload event", e);
+                throw new RuntimeException("Failed to publish recipient upload event", e);
+            }
+        }, executorService); // executorService를 사용하여 비동기적으로 발행 작업을 실행
     }
 
     public void publishSendEvent(MessageSendEvent event) {
@@ -53,9 +58,5 @@ public class EventHubMessagePublisher {
             log.error("Error publishing message send event", e);
             throw new RuntimeException("Failed to publish message send event", e);
         }
-    }
-
-    public void publishResultEvent(MessageResultEvent event) {
-
     }
 }
