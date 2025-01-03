@@ -3,21 +3,16 @@ spring:
     name: auth-service
   datasource:
     driver-class-name: org.postgresql.Driver
-#    url: jdbc:postgresql://10.0.195.172:5432/rcs-auth-db
-    url : jdbc:postgresql://localhost:5432/postgres
-#    username: dg4s
-    username : postgres
-    password: p@ssw0rd!@
+    url: ${AUTH_DB_URL}
+#    url : jdbc:postgresql://localhost:5432/postgres
+    username: ${AUTH_DB_USERNAME}
+#    username : postgres
+    password: ${AUTH_DB_PASSWORD}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     show-sql: true
-
-logging:
-  level:
-    com.ktds.rcsp: DEBUG
-    org.springframework.web: DEBUG
 
 server:
   port: 8081
@@ -26,18 +21,5 @@ jwt:
   secret: temporary_secret_key_for_development
   expiration: 1800000
 
-azure:
-  eventhub:
-    connection-string: ${EVENTHUB_CONNECTION_STRING}
-    number-encrypt:
-      name: ${EVENTHUB_ENCRYPT_NUM_REQ}
-    message-send:
-      name: ${EVENTHUB_MESSAGE_SEND_REQ}
-    message-result:
-      name: ${EVENTHUB_MESSAGE_RESULT_RES}
-  consumer-group:
-    message: message-consumer-group
-    history: history-consumer-group
-
-
-
+eventhub:
+  enabled: false
