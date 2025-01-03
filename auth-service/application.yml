@@ -3,11 +3,11 @@ spring:
     name: auth-service
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://10.0.195.172:5432/rcs-auth-db
+    url: ${AUTH_DB_URL}
 #    url : jdbc:postgresql://localhost:5432/postgres
-    username: dg4s
+    username: ${AUTH_DB_USERNAME}
 #    username : postgres
-    password: p@ssw0rd!@
+    password: ${AUTH_DB_PASSWORD}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
@@ -20,3 +20,6 @@ server:
 jwt:
   secret: temporary_secret_key_for_development
   expiration: 1800000
+
+eventhub:
+  enabled: false

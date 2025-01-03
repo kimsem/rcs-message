@@ -17,5 +17,8 @@ spring:
     
 server:
   port: 8084
+azure:
+  eventhub:
+    enabled: false
 
 # Source Files

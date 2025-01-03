@@ -9,6 +9,7 @@ spring:
       database: ${MONGODB_DATABASE}
 azure:
   eventhub:
+    enabled: true
     connection-string: ${EVENTHUB_CONNECTION_STRING}
     number-encrypt:
       name: ${EVENTHUB_ENCRYPT_NUM_REQ}
