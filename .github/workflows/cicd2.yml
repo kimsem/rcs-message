@@ -176,7 +176,8 @@ jobs:
           export app_namespace="${APP_NAMESPACE}"
           
           # Generate manifest
-          envsubst < deployment/deploy.yaml.template > deployment/deploy.yaml
+          # envsubst < deployment/deploy.yaml.template > deployment/deploy.yaml
+          envsubst < deployment/deploy.yaml.template | sed 's/\t/  /g' > deployment/deploy.yaml
           
           # Display for verification
           echo "Generated deployment manifest:"
