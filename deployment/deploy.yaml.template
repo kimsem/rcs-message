@@ -97,13 +97,13 @@ spec:
           value: "rcs-message-send"
         - name: EVENTHUB_MESSAGE_RESULT_RES
           value: "rcs-message-result"
-      resources:
+        resources:
           requests:
             cpu: 250m
-            memory: 512Mi
-          limits:
-            cpu: 500m
-            memory: 1024Mi
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1024Mi
 
 ---
 # Auth Service
