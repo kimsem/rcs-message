@@ -40,7 +40,7 @@ data:
   # 메시지 수신결과 응답 큐
   EVENTHUB_MESSAGE_RESULT_RES: "rcs-message-result"
   # 미사용 
-  ENCRYPTION_KEY: "your_encryption_key" 
+  ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef"
 
 ---
 # Auth Service Deployment
