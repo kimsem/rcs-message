@@ -12,9 +12,6 @@ dependencies {
 }
 
 processResources {
-    from('.') {
-        include 'application.yml'  // application.yml 파일만 포함
-    }
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
