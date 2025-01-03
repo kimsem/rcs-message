@@ -52,9 +52,12 @@ public class AuthServiceImpl implements AuthService {
         String accessToken = jwtTokenProvider.createToken(user.getMasterId(), user.getUserId());
         String refreshToken = jwtTokenProvider.createToken(user.getMasterId(), user.getUserId());
 
+        // 토큰 발급 시 MASTER_ID와 USER_ID도 포함하여 응답
         return LoginResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .masterId(user.getMasterId())
+                .userId(user.getUserId())
                 .build();
     }
 
