@@ -9,6 +9,9 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
@@ -31,12 +34,30 @@ public class SecurityConfig {
         return new JwtTokenProvider(jwtSecret, jwtExpiration);
     }
 
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
 
+        // 허용할 프론트엔드 도메인 설정
+//        configuration.addAllowedOrigin("http://your-frontend-domain.com"); // 프론트엔드 도메인을 실제 값으로 변경
+        // 또는 개발 환경이라면 모든 도메인 허용
+         configuration.addAllowedOrigin("*");
+
+        configuration.addAllowedMethod("*"); // 모든 HTTP 메서드 허용
+        configuration.addAllowedHeader("*"); // 모든 헤더 허용
+        configuration.setAllowCredentials(true); // 인증 정보 허용
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+
+        return source;
+    }
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.disable())
+                // CORS 설정 활성화
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
