@@ -39,7 +39,7 @@ public class EventHubMessageSubscriber {
     @PostConstruct
     public void subscribe() throws InterruptedException {
         startUploadEventSubscription();
-//        messageResultSubscription();
+        messageResultSubscription();
         sendMessageSubscription();
     }
 
