@@ -24,6 +24,9 @@ public class MessageHistorySearchRequest {
    
    @Schema(description = "메시지그룹ID")
    private String messageGroupId;
+
+   @Schema(description = "마스터ID")
+   private String masterId;
    
    @Schema(description = "상태")
    private String status;
