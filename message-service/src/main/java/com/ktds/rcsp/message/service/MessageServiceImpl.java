@@ -1,5 +1,6 @@
 package com.ktds.rcsp.message.service;
 
+import com.ktds.rcsp.common.dto.ErrorCode;
 import com.ktds.rcsp.common.event.MessageResultEvent;
 import com.ktds.rcsp.common.event.MessageSendEvent;
 import com.ktds.rcsp.common.exception.BusinessException;
@@ -53,7 +54,7 @@ public class MessageServiceImpl implements MessageService {
        List<Recipient> recipients = recipientRepository.findByMessageGroup_MessageGroupId(request.getMessageGroupId());
 
        if (recipients.isEmpty()) {
-           throw new BusinessException("메시지 그룹에 수신자가 없습니다.");
+           throw new BusinessException(ErrorCode.NO_RECIPIENTS);
        }
 
        // 2. 각 수신자별로 메시지 생성 및 처리
@@ -95,7 +96,7 @@ public class MessageServiceImpl implements MessageService {
    public void uploadRecipients(String messageGroupId, String masterId, MultipartFile file) {
        try {
            // 1. MessageGroup을 먼저 저장
-           if(messageGroupRepository.existsByMessageGroupId(messageGroupId)) throw new BusinessException("이미 존재하는 메시지 그룹 아이디입니다.");
+           if(messageGroupRepository.existsByMessageGroupId(messageGroupId)) throw new BusinessException(ErrorCode.DUPLICATE_MESSAGE_GROUP_ID);
            MessageGroup messageGroup = MessageGroup.builder()
                    .messageGroupId(messageGroupId)
                    .masterId(masterId)
@@ -146,7 +147,7 @@ public class MessageServiceImpl implements MessageService {
     public void processMessageResultEvent(MessageSendEvent event) {
         try {
             MessageGroup messageGroup = messageGroupRepository.findById(event.getMessageGroupId())
-                    .orElseThrow(() -> new BusinessException("Message group not found: " + event.getMessageGroupId()));
+                    .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_GROUP_NOT_FOUND));
 
             // 1. Message 엔티티 생성
             Message message = Message.builder()
@@ -168,7 +169,7 @@ public class MessageServiceImpl implements MessageService {
 
             // 4. 실패 시 에러 이벤트 발행
 //            publishFailureEvent(event.getMessageId(), e.getMessage());
-            throw new BusinessException("Failed to process message", e);
+            throw new BusinessException(ErrorCode.MESSAGE_PROCESSING_FAILED);
         }
     }
 }

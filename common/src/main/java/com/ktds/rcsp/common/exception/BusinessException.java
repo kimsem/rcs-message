@@ -1,11 +1,13 @@
 package com.ktds.rcsp.common.exception;
 
-public class BusinessException extends RuntimeException {
-    public BusinessException(String message) {
-        super(message);
+import com.ktds.rcsp.common.dto.ErrorCode;
+
+public class BusinessException extends BaseException {
+    public BusinessException(ErrorCode errorCode) {
+        super(errorCode);
     }
 
-    public BusinessException(String message, Throwable cause) {
-        super(message, cause);
+    public BusinessException(ErrorCode errorCode, String message) {
+        super(errorCode, message);
     }
 }
