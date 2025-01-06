@@ -6,6 +6,11 @@ spring:
     username: ${MESSAGE_DB_USERNAME}
     password: ${MESSAGE_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 50  # 최대 풀 크기
+      minimum-idle: 10       # 최소 유휴 연결 수
+      idle-timeout: 30000    # 유휴 연결 타임아웃 (밀리초)
+      connection-timeout: 30000  # 커넥션 획득 대기 시간 (밀리초)
   jpa:
     hibernate:
       ddl-auto: update
@@ -14,9 +19,17 @@ spring:
     hibernate:
       dialect: org.hibernate.dialect.PostgreSQLDialect
       format_sql: true
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
     
 server:
   port: 8082
+  tomcat:
+    max-swallow-size: -1
+
+
 
 encryption:
   key: ${ENCRYPTION_KEY}

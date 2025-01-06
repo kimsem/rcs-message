@@ -2,6 +2,7 @@ package com.ktds.rcsp.message.infra;
 
 import com.azure.messaging.eventhubs.*;
 import com.azure.messaging.eventhubs.models.EventPosition;
+import com.azure.messaging.eventhubs.models.PartitionEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ktds.rcsp.common.event.MessageResultEvent;
 import com.ktds.rcsp.common.event.MessageSendEvent;
@@ -12,8 +13,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import jakarta.annotation.PostConstruct;
+import com.fasterxml.jackson.core.type.TypeReference;
 
+
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
 @Slf4j
 @Component
@@ -26,56 +34,75 @@ public class EventHubMessageSubscriber {
     private final ObjectMapper objectMapper;
     private final MessageService messageService;
     private final RecipientService recipientService;
+    private final ExecutorService executorService;
 
     @PostConstruct
     public void subscribe() throws InterruptedException {
         startUploadEventSubscription();
-        messageResultSubscription();
+//        messageResultSubscription();
         sendMessageSubscription();
     }
 
     private void startUploadEventSubscription() throws InterruptedException {
         int retryCount = 0;
         int maxRetries = 5;
-        int retryDelay = 5000; // 시작 시 5초
+        int retryDelay = 5000;
 
         while (retryCount < maxRetries) {
             try {
                 numberEncryptConsumerAsyncClient.receiveFromPartition(
-                                "0", // 파티션 ID (예시로 "0"을 사용)
+                                "0",
                                 EventPosition.latest()
                         )
-                        .subscribe(partitionEvent -> {
-                            // 비동기 처리
-                            CompletableFuture.runAsync(() -> {
-                                try {
-                                    // 이벤트 데이터 처리
-                                    EventData eventData = partitionEvent.getData();
-                                    String eventBody = eventData.getBodyAsString();
-                                    RecipientUploadEvent event = objectMapper.readValue(eventBody, RecipientUploadEvent.class);
-
-                                    log.info("Received recipient upload event: {}", event.getMessageGroupId());
-
-                                    // 수신된 이벤트를 비동기적으로 처리
-                                    recipientService.encryptAndSaveRecipient(event.getMessageGroupId(), event.getPhoneNumber());
-                                } catch (Exception e) {
-                                    log.error("Error processing recipient upload event", e);
+                        .bufferTimeout(100, Duration.ofSeconds(1)) // Batch size of 100 or 1 second timeout
+                        .subscribe(partitionEvents -> {
+                            List<PartitionEvent> batch = new ArrayList<>();
+                            for (PartitionEvent partitionEvent : partitionEvents) {
+                                batch.add(partitionEvent);
+                                if (batch.size() >= 100) { // Adjust batch size as needed
+                                    processBatch(batch);
+                                    batch.clear();
                                 }
-                            });
+                            }
+                            if (!batch.isEmpty()) {
+                                processBatch(batch);
+                            }
                         });
-                break;  // 성공적으로 구독을 시작했으므로 반복 종료
+                break;
             } catch (Exception e) {
                 log.error("Error starting upload event subscription", e);
                 retryCount++;
                 if (retryCount >= maxRetries) {
                     log.error("Max retries reached. Giving up.");
-                    break;  // 최대 재시도 횟수를 초과하면 종료
+                    break;
                 }
-                // 지수 백오프 방식으로 재시도 대기
                 Thread.sleep(retryDelay);
-                retryDelay *= 2; // 대기 시간 지수적으로 증가
+                retryDelay *= 2;
             }
         }
+    }
+
+    private void processBatch(List<PartitionEvent> partitionEvents) {
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+        for (PartitionEvent partitionEvent : partitionEvents) {
+            futures.add(CompletableFuture.runAsync(() -> {
+                try {
+                    EventData eventData = partitionEvent.getData();
+                    String eventBody = eventData.getBodyAsString();
+                    List<RecipientUploadEvent> eventsToSave = objectMapper.readValue(
+                            eventBody,
+                            new TypeReference<List<RecipientUploadEvent>>() {}
+                    );
+                    log.info("Processing batch of {} recipient upload events", eventsToSave.size());
+                    recipientService.encryptAndSaveRecipient(eventsToSave);
+                } catch (Exception e) {
+                    log.error("Error processing recipient upload events batch", e);
+                }
+            }));
+        }
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
     }
 
     public void messageResultSubscription() throws InterruptedException {

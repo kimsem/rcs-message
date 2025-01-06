@@ -8,4 +8,6 @@ import java.util.Optional;
 
 public interface MessageGroupRepository extends JpaRepository<MessageGroup, String> {
     MessageGroup findByMessageGroupId(String messageGroupId);
+
+    boolean existsByMessageGroupId(String messageGroupId);
 }

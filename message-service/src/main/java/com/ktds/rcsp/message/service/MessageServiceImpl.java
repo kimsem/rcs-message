@@ -92,10 +92,12 @@ public class MessageServiceImpl implements MessageService {
    @Transactional
    public void uploadRecipients(String messageGroupId, MultipartFile file) {
        try {
+           // 1. MessageGroup을 먼저 저장
            MessageGroup messageGroup = MessageGroup.builder()
                    .messageGroupId(messageGroupId)
                    .status(MessageGroupStatus.READY)
                    .build();
+           if(messageGroupRepository.existsByMessageGroupId(messageGroupId)) throw new BusinessException("이미 존재하는 메시지 그룹 아이디입니다.");
            messageGroupRepository.save(messageGroup);
 
            recipientService.processRecipientFile(messageGroupId, file);

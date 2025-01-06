@@ -3,14 +3,13 @@ package com.ktds.rcsp.message.infra;
 import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.EventHubProducerClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ktds.rcsp.common.event.MessageResultEvent;
 import com.ktds.rcsp.common.event.MessageSendEvent;
 import com.ktds.rcsp.common.event.RecipientUploadEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
@@ -33,19 +32,18 @@ public class EventHubMessagePublisher {
      * @param event 발행할 수신자 업로드 이벤트
      * @throws RuntimeException 이벤트 발행 실패 시
      */
-    public void publishUploadEvent(RecipientUploadEvent event) {
+    public void publishUploadEvent(List<RecipientUploadEvent> events) {
         CompletableFuture.runAsync(() -> {
             try {
-                String eventData = objectMapper.writeValueAsString(event);
-                EventData eventDataObj = new EventData(eventData.getBytes());
-                numberEncryptProducerClient.send(Collections.singletonList(eventDataObj));
-
-                log.info("Published recipient upload event: {}", event.getMessageGroupId());
+                String eventData = objectMapper.writeValueAsString(events); // 리스트 전체를 JSON 배열로 직렬화
+                EventData batchEventData = new EventData(eventData.getBytes());
+                numberEncryptProducerClient.send(Collections.singletonList(batchEventData));
+                log.info("Published {} recipient upload events", events.size());
             } catch (Exception e) {
-                log.error("Error publishing recipient upload event", e);
-                throw new RuntimeException("Failed to publish recipient upload event", e);
+                log.error("Error publishing recipient upload events", e);
+                throw new RuntimeException("Failed to publish recipient upload events", e);
             }
-        }, executorService); // executorService를 사용하여 비동기적으로 발행 작업을 실행
+        }, executorService); // 스레드 풀을 활용
     }
 
     public void publishSendEvent(MessageSendEvent event) {
