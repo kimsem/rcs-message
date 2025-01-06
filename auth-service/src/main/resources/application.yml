@@ -16,8 +16,7 @@ spring:
 
 logging:
   level:
-    org:
-      springframework: DEBUG
+    com.ktds.rcsp: DEBUG
 
 server:
   port: 8081

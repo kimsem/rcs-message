@@ -13,4 +13,10 @@ public class LoginResponse {
     
     @Schema(description = "리프레시 토큰")
     private final String refreshToken;
+
+    @Schema(description = "마스터 ID")
+    private final String masterId;
+
+    @Schema(description = "사용자 ID")
+    private final String userId;
 }

@@ -22,9 +22,9 @@ data:
   AUTH_DB_USERNAME: "dg4s"
   AUTH_DB_PASSWORD: "p@ssw0rd!@"
   
-  MONGODB_URI: 'mongodb+srv://dg4us-mongo.mongocluster.cosmos.azure.com/'
+  MONGODB_URI: "dg4us-mongo.mongocluster.cosmos.azure.com"
   MONGODB_DB_USERNAME: "dg4sadm"
-  MONGODB_DB_PASSWORD: "p@ssw0rd!@"
+  MONGODB_DB_PASSWORD: "p%40ssw0rd!%40"
   MONGODB_DATABASE: "rcs-history-db"
   
   # JPA Settings
@@ -118,7 +118,7 @@ spec:
     userid: ${userid}
   ports:
     - port: 8080
-      targetPort: 8080
+      targetPort: 8081
   type: LoadBalancer
   
 ---
@@ -197,7 +197,7 @@ spec:
     userid: ${userid}
   ports:
     - port: 8080
-      targetPort: 8080
+      targetPort: 8084
   type: LoadBalancer
   
 ---
@@ -224,21 +224,26 @@ spec:
         image: ${history_image_path}
         imagePullPolicy: Always
         env:
-        - name: HISTORY_DB_URL
+        - name: MONGODB_URI
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
-              key: HISTORY_DB_URL
-        - name: HISTORY_DB_USERNAME
+              key: MONGODB_URI
+        - name: MONGODB_DB_USERNAME
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
-              key: HISTORY_DB_USERNAME
-        - name: HISTORY_DB_PASSWORD
+              key: MONGODB_DB_USERNAME
+        - name: MONGODB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: MONGODB_DATABASE
+        - name: MONGODB_DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: ${userid}-db-credentials
-              key: HISTORY_DB_PASSWORD
+              key: MONGODB_DB_PASSWORD
         - name: EVENTHUB_CONNECTION_STRING
           valueFrom:
             configMapKeyRef:
@@ -276,7 +281,7 @@ spec:
     userid: ${userid}
   ports:
     - port: 8080
-      targetPort: 8080
+      targetPort: 8083
   type: LoadBalancer
 
 ---
@@ -318,6 +323,11 @@ spec:
             secretKeyRef:
               name: ${userid}-db-credentials
               key: MESSAGE_DB_PASSWORD
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: ${userid}-rcs-config
+              key: ENCRYPTION_KEY
         - name: EVENTHUB_CONNECTION_STRING
           valueFrom:
             configMapKeyRef:
@@ -355,5 +365,5 @@ spec:
     userid: ${userid}
   ports:
     - port: 8080
-      targetPort: 8080
+      targetPort: 8082
   type: LoadBalancer
