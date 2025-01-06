@@ -1,18 +1,23 @@
 package com.ktds.rcsp.message.service;
 
+import com.ktds.rcsp.common.dto.PageResponse;
 import com.ktds.rcsp.common.event.RecipientUploadEvent;
 import com.ktds.rcsp.message.domain.MessageGroup;
 import com.ktds.rcsp.message.domain.ProcessingStatus;
 import com.ktds.rcsp.message.domain.Recipient;
+import com.ktds.rcsp.message.dto.RecipientResponse;
 import com.ktds.rcsp.message.infra.EncryptionService;
 import com.ktds.rcsp.message.infra.EventHubMessagePublisher;
 import com.ktds.rcsp.message.repository.MessageGroupRepository;
 import com.ktds.rcsp.message.repository.RecipientRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,8 +27,11 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -34,8 +42,11 @@ public class RecipientServiceImpl implements RecipientService {
     private final MessageGroupRepository messageGroupRepository;
     private final EncryptionService encryptionService;
     private final EventHubMessagePublisher eventPublisher;
+    private final ExecutorService executorService;
+    private final EntityManager entityManager;
+    private static final int BATCH_SIZE = 1000;
 
-    @Async("recipientProcessorExecutor")
+    @Async
     @Override
     public void processRecipientFile(String messageGroupId, MultipartFile file) {
         try (BufferedReader reader = new BufferedReader(
@@ -49,35 +60,26 @@ public class RecipientServiceImpl implements RecipientService {
                     .build()
                     .parse(reader);
 
-            // 수신자 정보를 처리할 스레드 수
-            List<CompletableFuture<Void>> futures = new ArrayList<>();
+            List<RecipientUploadEvent> eventBatch = new ArrayList<>(BATCH_SIZE);
 
-            int totalCount = 0;
             for (CSVRecord record : csvParser) {
                 String phoneNumber = record.get("phoneNumber");
+                eventBatch.add(RecipientUploadEvent.builder()
+                        .messageGroupId(messageGroupId)
+                        .phoneNumber(phoneNumber)
+                        .build());
 
-                // 비동기 처리로 이벤트 발행
-                CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                    try {
-                        RecipientUploadEvent event = RecipientUploadEvent.builder()
-                                .messageGroupId(messageGroupId)
-                                .phoneNumber(phoneNumber)
-                                .build();
-                        // EventHub에 이벤트 발행
-                        eventPublisher.publishUploadEvent(event);
-                    } catch (Exception e) {
-                        log.error("Error processing recipient with phone number: {}", phoneNumber, e);
-                    }
-                });
-
-                futures.add(future);
+                // 1000개씩 이벤트 발행
+                if (eventBatch.size() >= 1000) {
+                    eventPublisher.publishUploadEvent(eventBatch);
+                    eventBatch = new ArrayList<>(BATCH_SIZE);
+                }
             }
 
-            // 모든 비동기 작업 완료 기다리기
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-
-            // 처리된 수신자 수 로깅
-            log.info("Processed {} recipients for message group: {}", totalCount, messageGroupId);
+            // 남은 배치 처리
+            if (!eventBatch.isEmpty()) {
+                eventPublisher.publishUploadEvent(eventBatch);
+            }
 
         } catch (Exception e) {
             log.error("Error processing recipient file", e);
@@ -85,32 +87,55 @@ public class RecipientServiceImpl implements RecipientService {
         }
     }
 
-    @Override
-    @Transactional
-    public void encryptAndSaveRecipient(String messageGroupId, String phoneNumber) {
+    private void saveRecipientBatch(List<Recipient> recipients) {
         try {
-            String encryptedPhoneNumber = encryptionService.encrypt(phoneNumber);
-            saveRecipient(messageGroupId, encryptedPhoneNumber, ProcessingStatus.COMPLETED, null, null);
+            recipientRepository.saveAll(recipients);
+            entityManager.flush();
+            entityManager.clear();
         } catch (Exception e) {
-            log.error("Failed to encrypt and save recipient", e);
-            saveRecipient(messageGroupId, phoneNumber, ProcessingStatus.FAILED, "20000", "encryption failed");
-            throw new RuntimeException("Failed to encrypt and save recipient", e);
+            log.error("Failed to save recipient batch", e);
+            throw new RuntimeException("Failed to save recipient batch", e);
         }
     }
 
-    private void saveRecipient(String messageGroupId, String phoneNumber, ProcessingStatus status, String errorCode, String errorMessage) {
-        MessageGroup messageGroup = messageGroupRepository.findById(messageGroupId)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid messageGroupId: " + messageGroupId));
+    @Transactional
+    @Override
+    public void encryptAndSaveRecipient(List<RecipientUploadEvent> events) {
+        List<Recipient> recipientsToSave = new ArrayList<>();
+        Map<String, MessageGroup> messageGroupCache = new HashMap<>();
 
-        Recipient recipient = Recipient.builder()
-                .messageGroup(messageGroup)
-                .encryptedPhone(status == ProcessingStatus.COMPLETED ? phoneNumber : null)
-                .status(status)
-                .errorCode(errorCode)
-                .errorMessage(errorMessage)
+        for (RecipientUploadEvent event : events) {
+            String messageGroupId = event.getMessageGroupId();
+            MessageGroup messageGroup = messageGroupCache.computeIfAbsent(messageGroupId, id ->
+                    messageGroupRepository.findById(id)
+                            .orElseThrow(() -> new IllegalArgumentException("Invalid messageGroupId: " + id))
+            );
+            try {
+                String encryptedPhoneNumber = encryptionService.encrypt(event.getPhoneNumber());
+                recipientsToSave.add(Recipient.builder().messageGroup(messageGroup).encryptedPhone(encryptedPhoneNumber).status(ProcessingStatus.COMPLETED).build());
+            } catch (Exception e) {
+                log.error("Failed to encrypt recipient with MessageGroupId: {}", event.getMessageGroupId(), e);
+                recipientsToSave.add(Recipient.builder().messageGroup(messageGroup).status(ProcessingStatus.FAILED).errorCode("20000").errorMessage("encryption failed").build());
+            }
+        }
+
+        saveRecipientBatch(recipientsToSave);
+    }
+
+    @Override
+    public PageResponse<RecipientResponse> searchRecipients(String messageGroupId, Pageable pageable) {
+        Page<Recipient> recipientPage = recipientRepository.findByMessageGroup_MessageGroupId(messageGroupId, pageable);
+
+        List<RecipientResponse> content = recipientPage.getContent().stream()
+                .map(RecipientResponse::from)
+                .collect(Collectors.toList());
+
+        return PageResponse.<RecipientResponse>builder()
+                .content(content)
+                .totalElements(recipientPage.getTotalElements())
+                .totalPages(recipientPage.getTotalPages())
+                .pageNumber(recipientPage.getNumber())
+                .pageSize(recipientPage.getSize())
                 .build();
-
-        recipientRepository.save(recipient);
-
     }
 }
