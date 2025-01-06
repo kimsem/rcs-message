@@ -39,9 +39,10 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // 허용할 프론트엔드 도메인 설정
-//        configuration.addAllowedOrigin("http://your-frontend-domain.com"); // 프론트엔드 도메인을 실제 값으로 변경
-        // 또는 개발 환경이라면 모든 도메인 허용
-         configuration.addAllowedOrigin("*");
+        configuration.addAllowedOrigin("http://localhost:3000");
+        configuration.addAllowedOrigin("http://20.249.193.190");
+        // 또는 개발 환경이라면 모든 도메인 허용 -> configuration.setAllowCredentials(true); 설정으로 인해 주석 처리
+//         configuration.addAllowedOrigin("*");
 
         configuration.addAllowedMethod("*"); // 모든 HTTP 메서드 허용
         configuration.addAllowedHeader("*"); // 모든 헤더 허용
