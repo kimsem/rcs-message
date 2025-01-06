@@ -9,6 +9,10 @@ import lombok.Setter;
 @Setter
 @Schema(description = "메시지 발송 요청")
 public class MessageSendRequest {
+
+   @NotBlank(message = "마스터ID는 필수입니다")
+   @Schema(description = "마스터ID")
+   private String masterId;
    
    @NotBlank(message = "브랜드ID는 필수입니다")
    @Schema(description = "브랜드ID")

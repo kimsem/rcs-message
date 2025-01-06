@@ -41,6 +41,7 @@ public class MessageServiceImpl implements MessageService {
        // messageGroup update
        MessageGroup messageGroup = MessageGroup.builder()
                .messageGroupId(request.getMessageGroupId())
+               .masterId(request.getMasterId())
                .brandId(request.getBrandId())
                .templateId(request.getTemplateId())
                .chatbotId(request.getChatbotId())
@@ -72,6 +73,7 @@ public class MessageServiceImpl implements MessageService {
            MessageSendEvent sendEvent = MessageSendEvent.builder()
                    .messageId(UUID.randomUUID().toString())
                    .messageGroupId(messageGroup.getMessageGroupId())
+                   .masterId(messageGroup.getMasterId())
                    .brandId(message.getMessageGroup().getBrandId())
                    .templateId(message.getMessageGroup().getTemplateId())
                    .chatbotId(message.getMessageGroup().getChatbotId())
@@ -90,14 +92,15 @@ public class MessageServiceImpl implements MessageService {
 
    @Override
    @Transactional
-   public void uploadRecipients(String messageGroupId, MultipartFile file) {
+   public void uploadRecipients(String messageGroupId, String masterId, MultipartFile file) {
        try {
            // 1. MessageGroup을 먼저 저장
+           if(messageGroupRepository.existsByMessageGroupId(messageGroupId)) throw new BusinessException("이미 존재하는 메시지 그룹 아이디입니다.");
            MessageGroup messageGroup = MessageGroup.builder()
                    .messageGroupId(messageGroupId)
+                   .masterId(masterId)
                    .status(MessageGroupStatus.READY)
                    .build();
-           if(messageGroupRepository.existsByMessageGroupId(messageGroupId)) throw new BusinessException("이미 존재하는 메시지 그룹 아이디입니다.");
            messageGroupRepository.save(messageGroup);
 
            recipientService.processRecipientFile(messageGroupId, file);

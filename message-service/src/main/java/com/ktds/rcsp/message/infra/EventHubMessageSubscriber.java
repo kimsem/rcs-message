@@ -34,7 +34,6 @@ public class EventHubMessageSubscriber {
     private final ObjectMapper objectMapper;
     private final MessageService messageService;
     private final RecipientService recipientService;
-    private final ExecutorService executorService;
 
     @PostConstruct
     public void subscribe() throws InterruptedException {

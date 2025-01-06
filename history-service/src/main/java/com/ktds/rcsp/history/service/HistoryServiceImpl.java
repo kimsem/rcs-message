@@ -139,6 +139,7 @@ public class HistoryServiceImpl implements HistoryService {
        return MessageHistory.builder()
                .messageId(event.getMessageId())
                .messageGroupId(event.getMessageGroupId())
+               .masterId(event.getMasterId())
                .brandId(event.getBrandId())
                .templateId(event.getTemplateId())
                .chatbotId(event.getChatbotId())

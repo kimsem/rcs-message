@@ -38,8 +38,9 @@ public class MessageController {
    @Operation(summary = "수신자 정보 업로드", description = "수신자 정보 파일을 업로드합니다")
    public ApiResponse<Void> uploadRecipients(
            @RequestParam String messageGroupId,
+           @RequestParam String masterId,
            @RequestPart("file") MultipartFile file) {
-       messageService.uploadRecipients(messageGroupId, file);
+       messageService.uploadRecipients(messageGroupId, masterId, file);
        return ApiResponse.success(null);
    }
 
