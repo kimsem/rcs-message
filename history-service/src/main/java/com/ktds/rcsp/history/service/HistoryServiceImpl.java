@@ -41,12 +41,9 @@ public class HistoryServiceImpl implements HistoryService {
         historySearchTotalCounter.increment();
 
         try {
-            validateDateRange(request);
-
             Timer.Sample dbSample = Timer.start();
             dbConnectionCounter.increment();
 
-            // MongoDB는 ISODate 형식으로 저장되므로 LocalDateTime을 그대로 사용
             Page<MessageHistory> page = historyRepository.findBySearchCriteria(
                     request.getMasterId(),
                     request.getStartDate(),
@@ -54,7 +51,7 @@ public class HistoryServiceImpl implements HistoryService {
                     request.getBrandId(),
                     request.getChatbotId(),
                     request.getMessageGroupId(),
-                    request.getStatus() != null ? request.getStatus().toString() : null,
+                    request.getStatus(),  // .name() 제거
                     PageRequest.of(request.getPage(), request.getSize())
             );
 
@@ -167,5 +164,17 @@ public class HistoryServiceImpl implements HistoryService {
                 .status(MessageStatus.valueOf(event.getStatus()))
                 .createdAt(LocalDateTime.now())
                 .build();
+    }
+
+    private void validateMandatoryParameters(MessageHistorySearchRequest request) {
+        if (request.getMasterId() == null || request.getMasterId().isBlank()) {
+            throw new IllegalArgumentException("MasterId is mandatory");
+        }
+        if (request.getStartDate() == null) {
+            throw new IllegalArgumentException("Start date is mandatory");
+        }
+        if (request.getEndDate() == null) {
+            throw new IllegalArgumentException("End date is mandatory");
+        }
     }
 }
