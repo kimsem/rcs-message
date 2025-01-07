@@ -9,20 +9,17 @@ import com.ktds.rcsp.message.dto.MessageSendRequest;
 import com.ktds.rcsp.message.dto.MessageSendResponse;
 import com.ktds.rcsp.message.dto.UploadProgressResponse;
 import com.ktds.rcsp.message.infra.EncryptionService;
-import com.ktds.rcsp.message.infra.EventHubMessagePublisher;
 import com.ktds.rcsp.message.repository.MessageGroupRepository;
 import com.ktds.rcsp.message.repository.MessageRepository;
 import com.ktds.rcsp.message.repository.RecipientRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -36,7 +33,7 @@ public class MessageServiceImpl implements MessageService {
    private final MessageGroupRepository messageGroupRepository;
    private final RecipientService recipientService;
    private final EncryptionService encryptionService;
-   private final AsyncMessageProcessor asyncMessageProcessor;
+   private final MessageProcessor messageProcessor;
 
    @Override
    public MessageSendResponse sendMessage(MessageSendRequest request) {
@@ -58,7 +55,7 @@ public class MessageServiceImpl implements MessageService {
            throw new BusinessException(ErrorCode.NO_RECIPIENTS);
        }
 
-       asyncMessageProcessor.processMessagesAsync(request, recipients, messageGroup);
+       messageProcessor.processMessagesAsync(request, recipients, messageGroup);
 
        return MessageSendResponse.builder()
                .messageGroupId(request.getMessageGroupId())
@@ -78,6 +75,7 @@ public class MessageServiceImpl implements MessageService {
                    .messageGroupId(messageGroupId)
                    .masterId(masterId)
                    .status(MessageGroupStatus.READY)
+                   .totalCount(0)
                    .build();
            messageGroupRepository.save(messageGroup);
 
@@ -123,19 +121,17 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public void processMessageResultEvent(List<MessageSendEvent> events) {
         List<Message> messages = new ArrayList<>();
-
         for (MessageSendEvent event : events) {
             try {
-                MessageGroup messageGroup = messageGroupRepository.findById(event.getMessageGroupId())
-                        .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_GROUP_NOT_FOUND));
+                // 캐시를 통해 MessageGroup 조회
+                MessageGroup messageGroup = messageProcessor.getMessageGroup(event.getMessageGroupId());
 
-                // Message 엔티티 생성
                 Message message = Message.builder()
                         .messageId(event.getMessageId())
                         .messageGroup(messageGroup)
                         .recipientId(encryptionService.encrypt(event.getRecipientPhone()))
                         .content(event.getContent())
-                        .status(MessageStatus.PENDING)  // 초기 상태
+                        .status(MessageStatus.PENDING)
                         .build();
 
                 messages.add(message);
@@ -151,4 +147,5 @@ public class MessageServiceImpl implements MessageService {
             log.error("Failed to save batch of messages", e);
         }
     }
+
 }

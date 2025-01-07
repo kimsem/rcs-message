@@ -2,6 +2,7 @@ package com.ktds.rcsp.message.service;
 
 import com.ktds.rcsp.common.dto.PageResponse;
 import com.ktds.rcsp.common.event.RecipientUploadEvent;
+import com.ktds.rcsp.message.domain.MessageGroup;
 import com.ktds.rcsp.message.dto.RecipientResponse;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
