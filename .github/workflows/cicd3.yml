@@ -1,0 +1,293 @@
+name: RCS Application CI/CD 3
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'auth-service/**'
+      - 'message-service/**'
+      - 'history-service/**'
+      - 'basedata-service/**'
+      - 'gateway-service/**'
+      - 'common/**'
+      - 'deployment/**'
+  workflow_dispatch:
+    inputs:
+      USERID:
+        description: 'User ID for resource naming'
+        required: true
+        default: 'dg4us'
+        type: string
+
+env:
+  RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
+  LOCATION: ${{ vars.LOCATION }}
+  USERID: ${{ github.event.inputs.USERID || 'dg4us' }}
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      auth: ${{ steps.filter.outputs.auth }}
+      message: ${{ steps.filter.outputs.message }}
+      history: ${{ steps.filter.outputs.history }}
+      basedata: ${{ steps.filter.outputs.basedata }}
+      gateway: ${{ steps.filter.outputs.gateway }}
+      common: ${{ steps.filter.outputs.common }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            auth:
+              - 'auth-service/**'
+            message:
+              - 'message-service/**'
+            history:
+              - 'history-service/**'
+            basedata:
+              - 'basedata-service/**'
+            gateway:
+              - 'gateway-service/**'
+            common:
+              - 'common/**'
+              - 'deployment/**'
+              - 'build.gradle'
+              - 'settings.gradle'
+
+  build:
+    needs: changes
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.set_tag.outputs.image_tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: set_tag
+        run: |
+          echo "image_tag=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Set up JDK 17
+        if: |
+          needs.changes.outputs.auth == 'true' ||
+          needs.changes.outputs.message == 'true' ||
+          needs.changes.outputs.history == 'true' ||
+          needs.changes.outputs.basedata == 'true' ||
+          needs.changes.outputs.gateway == 'true' ||
+          needs.changes.outputs.common == 'true'
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Build Services
+        run: |
+          chmod +x gradlew
+          
+          # common 모듈이나 공통 설정이 변경된 경우 모든 서비스 빌드
+          if [[ "${{ needs.changes.outputs.common }}" == "true" ]]; then
+            echo "Building all services due to common changes"
+            ./gradlew clean build -x test
+          else
+            # 변경된 서비스만 빌드
+            if [[ "${{ needs.changes.outputs.auth }}" == "true" ]]; then
+              echo "Building auth service"
+              ./gradlew :auth-service:clean :auth-service:build -x test
+            fi
+            if [[ "${{ needs.changes.outputs.message }}" == "true" ]]; then
+              echo "Building message service"
+              ./gradlew :message-service:clean :message-service:build -x test
+            fi
+            if [[ "${{ needs.changes.outputs.history }}" == "true" ]]; then
+              echo "Building history service"
+              ./gradlew :history-service:clean :history-service:build -x test
+            fi
+            if [[ "${{ needs.changes.outputs.basedata }}" == "true" ]]; then
+              echo "Building basedata service"
+              ./gradlew :basedata-service:clean :basedata-service:build -x test
+            fi
+            if [[ "${{ needs.changes.outputs.gateway }}" == "true" ]]; then
+              echo "Building gateway service"
+              ./gradlew :gateway-service:clean :gateway-service:build -x test
+            fi
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: |
+            */build/libs/
+            deployment/
+            Dockerfile-*
+
+  release:
+    needs: [changes, build]
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ needs.build.outputs.image_tag }}
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+          path: .
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Azure Container Registry
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ env.USERID }}cr.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and Push Images
+        env:
+          IMAGE_REG: ${{ env.USERID }}cr.azurecr.io
+          IMAGE_ORG: rcs
+          IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
+        run: |
+          # common 변경시 모든 서비스 빌드/푸시
+          if [[ "${{ needs.changes.outputs.common }}" == "true" ]]; then
+            SERVICES="auth message history basedata gateway"
+          else
+            # 변경된 서비스만 처리
+            SERVICES=""
+            [[ "${{ needs.changes.outputs.auth }}" == "true" ]] && SERVICES="$SERVICES auth"
+            [[ "${{ needs.changes.outputs.message }}" == "true" ]] && SERVICES="$SERVICES message"
+            [[ "${{ needs.changes.outputs.history }}" == "true" ]] && SERVICES="$SERVICES history"
+            [[ "${{ needs.changes.outputs.basedata }}" == "true" ]] && SERVICES="$SERVICES basedata"
+            [[ "${{ needs.changes.outputs.gateway }}" == "true" ]] && SERVICES="$SERVICES gateway"
+          fi
+          
+          for service in $SERVICES; do
+            echo "Processing ${service} service..."
+          
+            # Dockerfile 생성
+            echo "FROM eclipse-temurin:17-jdk-alpine" > "Dockerfile.${service}"
+            echo "COPY ${service}-service/build/libs/${service}-service-*.jar app.jar" >> "Dockerfile.${service}"
+            echo 'ENTRYPOINT ["java","-jar","/app.jar"]' >> "Dockerfile.${service}"
+          
+            # 이미지 빌드 및 푸시
+            docker build -f "Dockerfile.${service}" \
+              -t "${IMAGE_REG}/${IMAGE_ORG}/rcs-${service}:${IMAGE_TAG}" \
+              -t "${IMAGE_REG}/${IMAGE_ORG}/rcs-${service}:latest" .
+          
+            docker push "${IMAGE_REG}/${IMAGE_ORG}/rcs-${service}:${IMAGE_TAG}"
+            docker push "${IMAGE_REG}/${IMAGE_ORG}/rcs-${service}:latest"
+          done
+
+  deploy:
+    needs: [changes, build, release]
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+          path: .
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set up kubelogin
+        uses: azure/use-kubelogin@v1
+        with:
+          kubelogin-version: 'v0.0.25'
+
+      - name: Get AKS Credentials
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ env.RESOURCE_GROUP }}
+          cluster-name: ${{ env.USERID }}-aks
+
+      - name: Update Kubernetes Deployments
+        env:
+          IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
+          IMAGE_REG: ${{ env.USERID }}cr.azurecr.io
+          IMAGE_ORG: rcs
+          APP_NAMESPACE: rcs-mvp
+          USERID: ${{ env.USERID }}
+        run: |
+          # common 변경시 모든 서비스 배포
+          if [[ "${{ needs.changes.outputs.common }}" == "true" ]]; then
+            echo "Deploying all services due to common changes"
+            export auth_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-auth:${IMAGE_TAG}"
+            export message_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-message:${IMAGE_TAG}"
+            export history_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-history:${IMAGE_TAG}"
+            export basedata_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-basedata:${IMAGE_TAG}"
+            export gateway_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-gateway:${IMAGE_TAG}"
+          
+            envsubst < deployment/deploy.yaml.template > deployment/deploy.yaml
+            kubectl apply -f deployment/deploy.yaml
+          else
+            # 변경된 서비스만 업데이트
+            if [[ "${{ needs.changes.outputs.auth }}" == "true" ]]; then
+              echo "Updating auth service deployment"
+              kubectl set image deployment/${USERID}-rcs-auth -n ${APP_NAMESPACE} \
+                auth-service=${IMAGE_REG}/${IMAGE_ORG}/rcs-auth:${IMAGE_TAG}
+            fi
+            if [[ "${{ needs.changes.outputs.message }}" == "true" ]]; then
+              echo "Updating message service deployment"
+              kubectl set image deployment/${USERID}-rcs-message -n ${APP_NAMESPACE} \
+                message-service=${IMAGE_REG}/${IMAGE_ORG}/rcs-message:${IMAGE_TAG}
+            fi
+            if [[ "${{ needs.changes.outputs.history }}" == "true" ]]; then
+              echo "Updating history service deployment"
+              kubectl set image deployment/${USERID}-rcs-history -n ${APP_NAMESPACE} \
+                history-service=${IMAGE_REG}/${IMAGE_ORG}/rcs-history:${IMAGE_TAG}
+            fi
+            if [[ "${{ needs.changes.outputs.basedata }}" == "true" ]]; then
+              echo "Updating basedata service deployment"
+              kubectl set image deployment/${USERID}-rcs-basedata -n ${APP_NAMESPACE} \
+                basedata-service=${IMAGE_REG}/${IMAGE_ORG}/rcs-basedata:${IMAGE_TAG}
+            fi
+            if [[ "${{ needs.changes.outputs.gateway }}" == "true" ]]; then
+              echo "Updating gateway service deployment"
+              kubectl set image deployment/${USERID}-rcs-gateway -n ${APP_NAMESPACE} \
+                gateway-service=${IMAGE_REG}/${IMAGE_ORG}/rcs-gateway:${IMAGE_TAG}
+            fi
+          fi
+
+      - name: Verify Deployments
+        env:
+          APP_NAMESPACE: rcs-mvp
+        run: |
+          # common 변경시 또는 변경된 서비스에 대해서만 검증
+          if [[ "${{ needs.changes.outputs.common }}" == "true" ]]; then
+            SERVICES="auth message history basedata gateway"
+          else
+            SERVICES=""
+            [[ "${{ needs.changes.outputs.auth }}" == "true" ]] && SERVICES="$SERVICES auth"
+            [[ "${{ needs.changes.outputs.message }}" == "true" ]] && SERVICES="$SERVICES message"
+            [[ "${{ needs.changes.outputs.history }}" == "true" ]] && SERVICES="$SERVICES history"
+            [[ "${{ needs.changes.outputs.basedata }}" == "true" ]] && SERVICES="$SERVICES basedata"
+            [[ "${{ needs.changes.outputs.gateway }}" == "true" ]] && SERVICES="$SERVICES gateway"
+          fi
+          
+          for service in $SERVICES; do
+            echo "Verifying ${service} service deployment..."
+            kubectl wait --for=condition=ready pod \
+              -l "app=${service}-service,userid=${{ env.USERID }}" \
+              -n ${APP_NAMESPACE} --timeout=600s || true
+          
+            IP=$(kubectl get svc ${{ env.USERID }}-rcs-${service} \
+              -n ${APP_NAMESPACE} \
+              -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+            echo "${service} Service IP: ${IP}"
+          
+            if [ -z "${IP}" ]; then
+              echo "Error: ${service} service IP not available"
+              exit 1
+            fi
+          done
