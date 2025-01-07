@@ -29,6 +29,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -38,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -60,7 +62,6 @@ public class RecipientServiceImpl implements RecipientService {
     public void processRecipientFile(String messageGroupId, MultipartFile file) {
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
-
             CSVParser csvParser = CSVFormat.Builder.create()
                     .setHeader()
                     .setIgnoreHeaderCase(true)
@@ -188,8 +189,26 @@ public class RecipientServiceImpl implements RecipientService {
                 .build();
     }
 
+    @Override
+    public int getTotalCount(MultipartFile file) throws IOException {
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
+            CSVParser csvParser = CSVFormat.Builder.create()
+                    .setHeader()
+                    .setIgnoreHeaderCase(true)
+                    .setTrim(true)
+                    .setSkipHeaderRecord(true)
+                    .build()
+                    .parse(reader);
+            return csvParser.getRecords().size();
+        } catch (Exception e) {
+            log.error("Error processing recipient file", e);
+            throw new RuntimeException("Failed to process recipient file", e);
+        }
+    }
+
     public void saveRecipientBatchWithJdbcBatch(List<Recipient> recipients) {
-        String sql = "INSERT INTO recipients (message_group_id, encrypted_phone, status, error_code, error_message, created_at) VALUES (?, ?, ?, ?, ?,?)";
+        String sql = "INSERT INTO recipients (message_group_id, encrypted_phone, status, error_code, error_message, created_at) VALUES (?, ?, ?, ?, ?,?) ON CONFLICT (message_group_id, encrypted_phone) DO NOTHING";
 
         // 배치 업데이트를 위한 파라미터 리스트 준비
         List<Object[]> batchArgs = recipients.stream()

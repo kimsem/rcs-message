@@ -69,13 +69,15 @@ public class MessageServiceImpl implements MessageService {
    @Transactional
    public void uploadRecipients(String messageGroupId, String masterId, MultipartFile file) {
        try {
+           int totalCount = recipientService.getTotalCount(file);
+
            // 1. MessageGroup을 먼저 저장
            if(messageGroupRepository.existsByMessageGroupId(messageGroupId)) throw new BusinessException(ErrorCode.DUPLICATE_MESSAGE_GROUP_ID);
            MessageGroup messageGroup = MessageGroup.builder()
                    .messageGroupId(messageGroupId)
                    .masterId(masterId)
-                   .status(MessageGroupStatus.READY)
-                   .totalCount(0)
+                   .status(MessageGroupStatus.UPLOADING)
+                   .totalCount(totalCount)
                    .build();
            messageGroupRepository.save(messageGroup);
 
@@ -105,7 +107,7 @@ public class MessageServiceImpl implements MessageService {
                        row -> (Long) row[1] // 두 번째 값은 카운트
                ));
        // 각 상태별 count 가져오기
-       long totalCount = statusCountMap.values().stream().mapToLong(Long::longValue).sum();
+       Integer totalCount = messageGroupRepository.getTotalCountByMessageGroupId(messageGroupId);
        long successCount = statusCountMap.getOrDefault(ProcessingStatus.COMPLETED, 0L);
        long failCount = statusCountMap.getOrDefault(ProcessingStatus.FAILED, 0L);
 
@@ -113,7 +115,7 @@ public class MessageServiceImpl implements MessageService {
                .processedCount((int) (successCount + failCount))
                .successCount((int) successCount)
                .failCount((int) failCount)
-               .totalCount((int) totalCount)
+               .totalCount(totalCount)
                .status(totalCount == (successCount + failCount) ? "COMPLETED" : "PROCESSING")
                .build();
    }
