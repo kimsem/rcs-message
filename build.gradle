@@ -60,6 +60,8 @@ subprojects {
         // Logback (SLF4J의 기본 구현체)
         implementation 'ch.qos.logback:logback-classic:1.4.11'
 
+        // prometheus
+        classpath "io.micrometer:micrometer-registry-prometheus:1.12.3"
 
     }
 }

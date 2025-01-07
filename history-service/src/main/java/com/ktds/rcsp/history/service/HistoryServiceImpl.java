@@ -8,6 +8,8 @@ import com.ktds.rcsp.history.domain.MessageStatus;
 import com.ktds.rcsp.history.dto.MessageHistoryResponse;
 import com.ktds.rcsp.history.dto.MessageHistorySearchRequest;
 import com.ktds.rcsp.history.repository.HistoryRepository;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Counter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -24,72 +26,140 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class HistoryServiceImpl implements HistoryService {
 
-   private final HistoryRepository historyRepository;
+    private final HistoryRepository historyRepository;
+    private final Timer historySearchTimer;
+    private final Counter historySearchTotalCounter;
+    private final Counter historySearchErrorCounter;
+    private final Timer dbQueryTimer;
+    private final Counter dbConnectionCounter;
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<MessageHistoryResponse> searchMessages(MessageHistorySearchRequest request) {
-        Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
-        Page<MessageHistory> page;
+        Timer.Sample searchSample = Timer.start();
+        historySearchTotalCounter.increment();
 
-        // 검색 조건이 모두 있는 경우
-        if (hasAllSearchCriteria(request)) {
-            page = historyRepository.findBySearchCriteria(
-                    request.getStartDate(),
-                    request.getEndDate(),
-                    request.getBrandId(),
-                    request.getChatbotId(),
-                    request.getMessageGroupId(),
-                    request.getMasterId(),
-                    request.getStatus(),
-                    pageable
-            );
-        }
-        // 날짜 범위만 있는 경우
-        else if (hasDateRangeOnly(request)) {
-            page = historyRepository.findByCreatedAtBetween(
-                    request.getStartDate(),
-                    request.getEndDate(),
-                    pageable
-            );
-        }
-        // 브랜드ID로 검색
-        else if (request.getBrandId() != null) {
-            page = historyRepository.findByBrandId(request.getBrandId(), pageable);
-        }
-        // 발신번호ID로 검색
-        else if (request.getChatbotId() != null) {
-            page = historyRepository.findByChatbotId(request.getChatbotId(), pageable);
-        }
-        // 메시지그룹ID로 검색
-        else if (request.getMessageGroupId() != null) {
-            page = historyRepository.findByMessageGroupId(request.getMessageGroupId(), pageable);
-        }
-        // 마스터ID로 검색
-        else if (request.getMasterId() != null) {
-            page = historyRepository.findByMasterId(request.getMasterId(), pageable);
-        }
-        // 상태로 검색
-        else if (request.getStatus() != null) {
-            page = historyRepository.findByStatus(request.getStatus(), pageable);
-        }
-        // 검색 조건이 없는 경우
-        else {
-            page = historyRepository.findAll(pageable);
-        }
+        try {
+            Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
+            Page<MessageHistory> page;
 
-        return PageResponse.<MessageHistoryResponse>builder()
-                .content(page.getContent().stream()
-                        .map(this::convertToResponse)
-                        .toList())
-                .totalElements(page.getTotalElements())
-                .totalPages(page.getTotalPages())
-                .pageNumber(page.getNumber())
-                .pageSize(page.getSize())
-                .build();
+            Timer.Sample dbSample = Timer.start();
+            dbConnectionCounter.increment();
+
+            // 검색 조건이 모두 있는 경우
+            if (hasAllSearchCriteria(request)) {
+                page = historyRepository.findBySearchCriteria(
+                        request.getStartDate(),
+                        request.getEndDate(),
+                        request.getBrandId(),
+                        request.getChatbotId(),
+                        request.getMessageGroupId(),
+                        request.getMasterId(),
+                        request.getStatus(),
+                        pageable
+                );
+            }
+            // 날짜 범위만 있는 경우
+            else if (hasDateRangeOnly(request)) {
+                page = historyRepository.findByCreatedAtBetween(
+                        request.getStartDate(),
+                        request.getEndDate(),
+                        pageable
+                );
+            }
+            // 브랜드ID로 검색
+            else if (request.getBrandId() != null) {
+                page = historyRepository.findByBrandId(request.getBrandId(), pageable);
+            }
+            // 발신번호ID로 검색
+            else if (request.getChatbotId() != null) {
+                page = historyRepository.findByChatbotId(request.getChatbotId(), pageable);
+            }
+            // 메시지그룹ID로 검색
+            else if (request.getMessageGroupId() != null) {
+                page = historyRepository.findByMessageGroupId(request.getMessageGroupId(), pageable);
+            }
+            // 마스터ID로 검색
+            else if (request.getMasterId() != null) {
+                page = historyRepository.findByMasterId(request.getMasterId(), pageable);
+            }
+            // 상태로 검색
+            else if (request.getStatus() != null) {
+                page = historyRepository.findByStatus(request.getStatus(), pageable);
+            }
+            // 검색 조건이 없는 경우
+            else {
+                page = historyRepository.findAll(pageable);
+            }
+
+            dbSample.stop(dbQueryTimer);
+
+            PageResponse<MessageHistoryResponse> response = PageResponse.<MessageHistoryResponse>builder()
+                    .content(page.getContent().stream()
+                            .map(this::convertToResponse)
+                            .toList())
+                    .totalElements(page.getTotalElements())
+                    .totalPages(page.getTotalPages())
+                    .pageNumber(page.getNumber())
+                    .pageSize(page.getSize())
+                    .build();
+
+            searchSample.stop(historySearchTimer);
+            return response;
+
+        } catch (Exception e) {
+            historySearchErrorCounter.increment();
+            log.error("Error searching message history", e);
+            throw e;
+        }
     }
 
-    // 검색 조건 체크 헬퍼 메소드들
+    @Override
+    @Transactional
+    public void saveMessageHistory(List<MessageSendEvent> events) {
+        Timer.Sample dbSample = Timer.start();
+        dbConnectionCounter.increment();
+
+        try {
+            List<MessageHistory> entities = events.stream()
+                    .map(this::convertToEntity)
+                    .collect(Collectors.toList());
+
+            historyRepository.saveAll(entities);
+            dbSample.stop(dbQueryTimer);
+
+        } catch (Exception e) {
+            historySearchErrorCounter.increment();
+            log.error("Error saving message history", e);
+            throw e;
+        }
+    }
+
+    @Override
+    @Transactional
+    public void updateMessageStatus(MessageResultEvent event) {
+        Timer.Sample dbSample = Timer.start();
+        dbConnectionCounter.increment();
+
+        try {
+            MessageHistory history = historyRepository.findById(event.getMessageId())
+                    .orElseThrow(() -> new RuntimeException("Message history not found: " + event.getMessageId()));
+
+            history.updateStatus(MessageStatus.valueOf(event.getStatus()),
+                    event.getResultCode(),
+                    event.getResultMessage());
+
+            historyRepository.save(history);
+            dbSample.stop(dbQueryTimer);
+
+        } catch (Exception e) {
+            historySearchErrorCounter.increment();
+            log.error("Error updating message status", e);
+            throw e;
+        }
+    }
+
+    // Helper methods remain unchanged
     private boolean hasAllSearchCriteria(MessageHistorySearchRequest request) {
         return request.getStartDate() != null &&
                 request.getEndDate() != null &&
@@ -110,59 +180,36 @@ public class HistoryServiceImpl implements HistoryService {
                 request.getStatus() == null;
     }
 
-   @Override
-   @Transactional
-   public void saveMessageHistory(List<MessageSendEvent> events) {
-       List<MessageHistory> entities = events.stream()
-               .map(this::convertToEntity)
-               .collect(Collectors.toList());
+    private MessageHistoryResponse convertToResponse(MessageHistory entity) {
+        return MessageHistoryResponse.builder()
+                .messageId(entity.getMessageId())
+                .messageGroupId(entity.getMessageGroupId())
+                .brandId(entity.getBrandId())
+                .templateId(entity.getTemplateId())
+                .chatbotId(entity.getChatbotId())
+                .content(entity.getContent())
+                .phoneNumber(entity.getEncryptedPhone())
+                .masterId(entity.getMasterId())
+                .status(entity.getStatus())
+                .resultCode(entity.getResultCode())
+                .resultMessage(entity.getResultMessage())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .build();
+    }
 
-       // 대량 데이터 일괄 저장
-       historyRepository.saveAll(entities);
-   }
-
-
-   @Override
-   @Transactional
-   public void updateMessageStatus(MessageResultEvent event) {
-       MessageHistory history = historyRepository.findById(event.getMessageId())
-               .orElseThrow(() -> new RuntimeException("Message history not found: " + event.getMessageId()));
-           
-       history.updateStatus(MessageStatus.valueOf(event.getStatus()), event.getResultCode(), event.getResultMessage());
-       historyRepository.save(history);
-   }
-
-   private MessageHistoryResponse convertToResponse(MessageHistory entity) {
-       return MessageHistoryResponse.builder()
-               .messageId(entity.getMessageId())
-               .messageGroupId(entity.getMessageGroupId())
-               .brandId(entity.getBrandId())
-               .templateId(entity.getTemplateId())
-               .chatbotId(entity.getChatbotId())
-               .content(entity.getContent())
-               .phoneNumber(entity.getEncryptedPhone())
-               .masterId(entity.getMasterId())
-               .status(entity.getStatus())
-               .resultCode(entity.getResultCode())
-               .resultMessage(entity.getResultMessage())
-               .createdAt(entity.getCreatedAt())
-               .updatedAt(entity.getUpdatedAt())
-               .build();
-   }
-
-   private MessageHistory convertToEntity(MessageSendEvent event) {
-       return MessageHistory.builder()
-               .messageId(event.getMessageId())
-               .messageGroupId(event.getMessageGroupId())
-               .masterId(event.getMasterId())
-               .brandId(event.getBrandId())
-               .templateId(event.getTemplateId())
-               .chatbotId(event.getChatbotId())
-               .content(event.getContent())
-               .encryptedPhone(event.getRecipientPhone())
-               .status(MessageStatus.valueOf(event.getStatus()))
-               .createdAt(LocalDateTime.now())
-               .build();
-   }
+    private MessageHistory convertToEntity(MessageSendEvent event) {
+        return MessageHistory.builder()
+                .messageId(event.getMessageId())
+                .messageGroupId(event.getMessageGroupId())
+                .masterId(event.getMasterId())
+                .brandId(event.getBrandId())
+                .templateId(event.getTemplateId())
+                .chatbotId(event.getChatbotId())
+                .content(event.getContent())
+                .encryptedPhone(event.getRecipientPhone())
+                .status(MessageStatus.valueOf(event.getStatus()))
+                .createdAt(LocalDateTime.now())
+                .build();
+    }
 }
-

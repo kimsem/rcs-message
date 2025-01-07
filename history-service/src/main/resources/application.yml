@@ -31,3 +31,18 @@ logging:
           mongodb:
             core:
               MongoTemplate: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    tags:
+      app: ${spring.application.name}
+      instance: ${HOSTNAME:localhost}:${server.port}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 50ms,100ms,200ms,500ms,1s
