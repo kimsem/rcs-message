@@ -34,6 +34,7 @@ public interface HistoryRepository extends MongoRepository<MessageHistory, Strin
             "{ 'brandId': ?2 }, " +
             "{ 'chatbotId': ?3 }, " +
             "{ 'messageGroupId': ?4 }, " +
+            "{ 'masterId': ?5 }, " +
             "{ 'status': ?6 } " +
             "] }")
     Page<MessageHistory> findBySearchCriteria(

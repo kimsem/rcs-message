@@ -28,6 +28,9 @@ public class MessageHistoryResponse {
    
    @Schema(description = "발신번호ID")
    private final String chatbotId;
+
+   @Schema(description = "수신번호")
+   private final String phoneNumber;
    
    @Schema(description = "메시지 내용")
    private final String content;

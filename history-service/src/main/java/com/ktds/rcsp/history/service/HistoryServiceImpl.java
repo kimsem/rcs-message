@@ -140,6 +140,7 @@ public class HistoryServiceImpl implements HistoryService {
                .templateId(entity.getTemplateId())
                .chatbotId(entity.getChatbotId())
                .content(entity.getContent())
+               .phoneNumber(entity.getEncryptedPhone())
                .masterId(entity.getMasterId())
                .status(entity.getStatus())
                .resultCode(entity.getResultCode())
