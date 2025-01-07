@@ -6,5 +6,5 @@ include 'auth-service'
 include 'message-service'
 include 'history-service'
 include 'basedata-service'
-
+include 'gateway-service'
 

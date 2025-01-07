@@ -11,6 +11,7 @@
             <option value="$PROJECT_DIR$/auth-service" />
             <option value="$PROJECT_DIR$/basedata-service" />
             <option value="$PROJECT_DIR$/common" />
+            <option value="$PROJECT_DIR$/gateway-service" />
             <option value="$PROJECT_DIR$/history-service" />
             <option value="$PROJECT_DIR$/message-service" />
           </set>

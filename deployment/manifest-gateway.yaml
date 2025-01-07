@@ -1,0 +1,61 @@
+# ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+  namespace: rcs-mvp
+data:
+  SERVER_PORT: "8000"
+  AUTH_SERVICE_URL: "http://dg4us-rcs-auth:8080"
+  MESSAGE_SERVICE_URL: "http://dg4us-rcs-message:8080"
+  HISTORY_SERVICE_URL: "http://dg4us-rcs-history:8080"
+  BASEDATA_SERVICE_URL: "http://dg4us-rcs-basedata:8080"
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: rcs-mvp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+        - name: gateway
+          image: dg4uscr.azurecr.io/rcs/gateway:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: gateway-config
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1024Mi
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  namespace: rcs-mvp
+spec:
+  selector:
+    app: gateway
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: LoadBalancer

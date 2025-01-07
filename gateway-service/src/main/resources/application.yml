@@ -1,0 +1,77 @@
+# gateway-service/src/main/resources/application.yml
+spring:
+  main:
+    web-application-type: reactive
+  application:
+    name: gateway-service
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+      routes:
+        # Auth Service Routes
+        - id: auth-service
+          uri: http://dg4us-rcs-auth:8080  # 실제 k8s 서비스 이름으로 변경
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - RemoveRequestHeader=Cookie
+
+        # Message Service Routes
+        - id: message-service
+          uri: http://dg4us-rcs-message:8080  # 실제 k8s 서비스 이름으로 변경
+          predicates:
+            - Path=/api/messages/**
+          filters:
+            - RemoveRequestHeader=Cookie
+            - AuthorizationHeaderFilter
+
+        # History Service Routes
+        - id: history-service
+          uri: http://dg4us-rcs-history:8080  # 실제 k8s 서비스 이름으로 변경
+          predicates:
+            - Path=/api/history/**
+          filters:
+            - RemoveRequestHeader=Cookie
+            - AuthorizationHeaderFilter
+
+        # Basedata Service Routes
+        - id: basedata-service
+          uri: http://dg4us-rcs-basedata:8080  # 실제 k8s 서비스 이름으로 변경
+          predicates:
+            - Path=/api/base/**
+          filters:
+            - RemoveRequestHeader=Cookie
+            - AuthorizationHeaderFilter
+
+      # CORS Configuration
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"
+              - "http://20.249.193.190"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+
+server:
+  port: 8000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty: DEBUG
