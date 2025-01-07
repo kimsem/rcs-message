@@ -54,27 +54,40 @@ public interface HistoryRepository extends MongoRepository<MessageHistory, Strin
     *   $or 연산자를 사용하여 각 조건이 null일 경우 무시되도록 처리
     *   MongoDB의 필드명 규칙에 맞게 수정 (camelCase를 snake_case로)
     * */
-    @Query("{" +
-            "'master_id': ?0, " +  // masterId는 필수
-            "'created_at': { $gte: ?1, $lte: ?2 }, " +  // 날짜 범위도 필수
+    @Query(value = "{" +
+            "'master_id': ?0, " +
+            "'created_at': { $gte: ?1, $lte: ?2 }, " +
             "$and: [" +
-            "  { $or: [" +
-            "    { 'brand_id': ?3 }," +
-            "    { $expr: { $eq: [?3, null] } }" +  // brandId가 null이면 조건 무시
-            "  ]}," +
-            "  { $or: [" +
-            "    { 'chatbot_id': ?4 }," +
-            "    { $expr: { $eq: [?4, null] } }" +  // chatbotId가 null이면 조건 무시
-            "  ]}," +
-            "  { $or: [" +
-            "    { 'message_group_id': ?5 }," +
-            "    { $expr: { $eq: [?5, null] } }" +  // messageGroupId가 null이면 조건 무시
-            "  ]}," +
-            "  { $or: [" +
-            "    { 'status': ?6 }," +
-            "    { $expr: { $eq: [?6, null] } }" +  // status가 null이면 조건 무시
-            "  ]}" +
-            "]}")
+            "  { $or: [ " +
+            "    { $and: [ " +
+            "      { $exists: { $eq: [?3, true] } }, " +
+            "      { 'brand_id': ?3 } " +
+            "    ]}, " +
+            "    { $exists: { $eq: [?3, false] } } " +
+            "  ]}, " +
+            "  { $or: [ " +
+            "    { $and: [ " +
+            "      { $exists: { $eq: [?4, true] } }, " +
+            "      { 'chatbot_id': ?4 } " +
+            "    ]}, " +
+            "    { $exists: { $eq: [?4, false] } } " +
+            "  ]}, " +
+            "  { $or: [ " +
+            "    { $and: [ " +
+            "      { $exists: { $eq: [?5, true] } }, " +
+            "      { 'message_group_id': ?5 } " +
+            "    ]}, " +
+            "    { $exists: { $eq: [?5, false] } } " +
+            "  ]}, " +
+            "  { $or: [ " +
+            "    { $and: [ " +
+            "      { $exists: { $eq: [?6, true] } }, " +
+            "      { 'status': ?6 } " +
+            "    ]}, " +
+            "    { $exists: { $eq: [?6, false] } } " +
+            "  ]} " +
+            "]}",
+            sort = "{ 'created_at': -1 }")  // -1은 DESC를 의미
     Page<MessageHistory> findBySearchCriteria(
             String masterId,          // 필수
             LocalDateTime startDate,  // 필수
