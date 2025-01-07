@@ -179,7 +179,7 @@ jobs:
           export message_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-message:${IMAGE_TAG}"
           export history_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-history:${IMAGE_TAG}"
           export basedata_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-basedata:${IMAGE_TAG}"
-          export basedata_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-gateway:${IMAGE_TAG}"
+          export gateway_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-gateway:${IMAGE_TAG}"
           export userid="${USERID}"
           export app_namespace="${APP_NAMESPACE}"
           

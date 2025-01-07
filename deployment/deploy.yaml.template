@@ -235,7 +235,7 @@ spec:
       annotations:
                 prometheus.io/scrape: "true"
                 prometheus.io/path: "/actuator/prometheus"
-                prometheus.io/port: "**8083**"
+                prometheus.io/port: "**8080**"
     spec:
       containers:
       - name: history-service
@@ -391,21 +391,23 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gateway
-  namespace: rcs-mvp
+  name: ${userid}-rcs-gateway
+  namespace: ${app_namespace}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: gateway
+      app: gateway-service
+      userid: ${userid}
   template:
     metadata:
       labels:
-        app: gateway
+        app: gateway-service
+        userid: ${userid}
     spec:
       containers:
         - name: gateway
-          image: dg4uscr.azurecr.io/rcs/gateway:latest
+          image: ${gateway_image_path}
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
@@ -425,11 +427,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: gateway
-  namespace: rcs-mvp
+  name: ${userid}-rcs-gateway
+  namespace: ${app_namespace}
 spec:
   selector:
-    app: gateway
+    app: gateway-service
+    userid: ${userid}
   ports:
     - port: 8000
       targetPort: 8000
