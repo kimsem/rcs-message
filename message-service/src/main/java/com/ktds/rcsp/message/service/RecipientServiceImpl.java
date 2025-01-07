@@ -95,6 +95,7 @@ public class RecipientServiceImpl implements RecipientService {
             throw new RuntimeException("Failed to process recipient file", e);
         }
     }
+
     public void processBatches(List<List<Recipient>> allBatches) {
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 

@@ -11,8 +11,6 @@ import java.util.List;
 
 public interface RecipientService {
    void processRecipientFile(String messageGroupId, MultipartFile file);
-
-   @Transactional
    void encryptAndSaveRecipient(List<RecipientUploadEvent> events);
 
    PageResponse<RecipientResponse> searchRecipients(String messageGroupId, Pageable pageable);

@@ -16,6 +16,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -103,9 +105,13 @@ public class HistoryServiceImpl implements HistoryService {
 
    @Override
    @Transactional
-   public void saveMessageHistory(MessageSendEvent event) {
-       MessageHistory entity = convertToEntity(event);
-       historyRepository.save(entity);
+   public void saveMessageHistory(List<MessageSendEvent> events) {
+       List<MessageHistory> entities = events.stream()
+               .map(this::convertToEntity)
+               .collect(Collectors.toList());
+
+       // 대량 데이터 일괄 저장
+       historyRepository.saveAll(entities);
    }
 
 

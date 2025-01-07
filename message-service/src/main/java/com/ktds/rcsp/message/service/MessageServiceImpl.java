@@ -15,10 +15,12 @@ import com.ktds.rcsp.message.repository.MessageRepository;
 import com.ktds.rcsp.message.repository.RecipientRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.Map;
@@ -32,12 +34,11 @@ public class MessageServiceImpl implements MessageService {
    private final MessageRepository messageRepository;
    private final RecipientRepository recipientRepository;
    private final MessageGroupRepository messageGroupRepository;
-   private final EventHubMessagePublisher eventPublisher;
    private final RecipientService recipientService;
    private final EncryptionService encryptionService;
+   private final AsyncMessageProcessor asyncMessageProcessor;
 
    @Override
-   @Transactional
    public MessageSendResponse sendMessage(MessageSendRequest request) {
        // messageGroup update
        MessageGroup messageGroup = MessageGroup.builder()
@@ -57,39 +58,15 @@ public class MessageServiceImpl implements MessageService {
            throw new BusinessException(ErrorCode.NO_RECIPIENTS);
        }
 
-       // 2. 각 수신자별로 메시지 생성 및 처리
-       List<Message> messages = recipients.stream()
-               .map(recipient -> Message.builder()
-                       .messageId(UUID.randomUUID().toString())
-                       .messageGroup(messageGroup)
-                       .recipientId(recipient.getEncryptedPhone())
-                       .content(request.getContent())
-                       .status(MessageStatus.PENDING)
-                       .build())
-               .toList();
-
-
-       // 3. 메시지들을 Event Hub에 발송 요청 적재
-       messages.forEach(message -> {
-           MessageSendEvent sendEvent = MessageSendEvent.builder()
-                   .messageId(UUID.randomUUID().toString())
-                   .messageGroupId(messageGroup.getMessageGroupId())
-                   .masterId(messageGroup.getMasterId())
-                   .brandId(message.getMessageGroup().getBrandId())
-                   .templateId(message.getMessageGroup().getTemplateId())
-                   .chatbotId(message.getMessageGroup().getChatbotId())
-                   .content(message.getContent())
-                   .recipientPhone(encryptionService.decrypt(message.getRecipientId()))
-                   .status(MessageStatus.PENDING.name())
-                   .build();
-           eventPublisher.publishSendEvent(sendEvent);
-       });
+       asyncMessageProcessor.processMessagesAsync(request, recipients, messageGroup);
 
        return MessageSendResponse.builder()
                .messageGroupId(request.getMessageGroupId())
                .status("SUCCESS")
                .build();
    }
+
+
 
    @Override
    @Transactional
@@ -144,32 +121,34 @@ public class MessageServiceImpl implements MessageService {
    }
 
     @Override
-    public void processMessageResultEvent(MessageSendEvent event) {
+    public void processMessageResultEvent(List<MessageSendEvent> events) {
+        List<Message> messages = new ArrayList<>();
+
+        for (MessageSendEvent event : events) {
+            try {
+                MessageGroup messageGroup = messageGroupRepository.findById(event.getMessageGroupId())
+                        .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_GROUP_NOT_FOUND));
+
+                // Message 엔티티 생성
+                Message message = Message.builder()
+                        .messageId(event.getMessageId())
+                        .messageGroup(messageGroup)
+                        .recipientId(encryptionService.encrypt(event.getRecipientPhone()))
+                        .content(event.getContent())
+                        .status(MessageStatus.PENDING)  // 초기 상태
+                        .build();
+
+                messages.add(message);
+            } catch (Exception e) {
+                log.error("Failed to process message send event - messageId: {}", event.getMessageId(), e);
+            }
+        }
+
         try {
-            MessageGroup messageGroup = messageGroupRepository.findById(event.getMessageGroupId())
-                    .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_GROUP_NOT_FOUND));
-
-            // 1. Message 엔티티 생성
-            Message message = Message.builder()
-                    .messageId(event.getMessageId())
-                    .messageGroup(messageGroup)
-                    .recipientId(encryptionService.encrypt(event.getRecipientPhone()))
-                    .content(event.getContent())
-                    .status(MessageStatus.PENDING)  // 초기 상태
-                    .build();
-
-            // 2. DB 저장
-            message = messageRepository.save(message);
-            log.info("Message saved - messageId: {}, status: {}",
-                    message.getMessageId(), message.getStatus());
-
+            messageRepository.saveAll(messages);
+            log.info("Batch of {} messages saved successfully.", messages.size());
         } catch (Exception e) {
-            log.error("Failed to process message send event - messageId: {}",
-                    event.getMessageId(), e);
-
-            // 4. 실패 시 에러 이벤트 발행
-//            publishFailureEvent(event.getMessageId(), e.getMessage());
-            throw new BusinessException(ErrorCode.MESSAGE_PROCESSING_FAILED);
+            log.error("Failed to save batch of messages", e);
         }
     }
 }

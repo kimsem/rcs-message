@@ -46,12 +46,12 @@ public class EventHubMessagePublisher {
         }, executorService); // 스레드 풀을 활용
     }
 
-    public void publishSendEvent(MessageSendEvent event) {
+    public void publishSendEvent(List<MessageSendEvent> events) {
         try {
-            String eventData = objectMapper.writeValueAsString(event);
+            String eventData = objectMapper.writeValueAsString(events);
             EventData eventDataObj = new EventData(eventData.getBytes());
             messageSendProducerClient.send(Collections.singletonList(eventDataObj));
-            log.info("Published message send event: {}", event.getMessageId());
+            log.info("Published {} recipient send events", events.size());
         } catch (Exception e) {
             log.error("Error publishing message send event", e);
             throw new RuntimeException("Failed to publish message send event", e);
