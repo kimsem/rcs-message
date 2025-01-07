@@ -47,10 +47,11 @@ jobs:
           ./gradlew message-service:clean message:build -x test
           ./gradlew history-service:clean history:build -x test
           ./gradlew basedata-service:clean basedata:build -x test
+          ./gradlew gateway-service:clean gateway:build -x test
 
       - name: Check build outputs
         run: |
-          for service in auth message history basedata; do
+          for service in auth message history basedata gateway; do
             echo "Checking ${service}-service build output..."
             ls -la ${service}-service/build/libs/
           done
@@ -96,7 +97,7 @@ jobs:
           IMAGE_ORG: rcs
           IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
         run: |
-          for service in auth message history basedata
+          for service in auth message history basedata gateway
           do
             echo "Building ${service} service image..."
             
@@ -178,6 +179,7 @@ jobs:
           export message_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-message:${IMAGE_TAG}"
           export history_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-history:${IMAGE_TAG}"
           export basedata_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-basedata:${IMAGE_TAG}"
+          export basedata_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-gateway:${IMAGE_TAG}"
           export userid="${USERID}"
           export app_namespace="${APP_NAMESPACE}"
           
@@ -195,7 +197,7 @@ jobs:
         env:
           APP_NAMESPACE: rcs-mvp
         run: |
-          for service in auth message history basedata; do
+          for service in auth message history basedata gateway; do
             echo "Waiting for ${service} service..."
             kubectl wait --for=condition=ready pod \
               -l "app=${service}-service,userid=${{ env.USERID }}" \
