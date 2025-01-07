@@ -16,6 +16,9 @@ public class MessageHistoryResponse {
    
    @Schema(description = "메시지그룹ID")
    private final String messageGroupId;
+
+   @Schema(description = "마스터ID")
+   private final String masterId;
    
    @Schema(description = "브랜드ID")
    private final String brandId;

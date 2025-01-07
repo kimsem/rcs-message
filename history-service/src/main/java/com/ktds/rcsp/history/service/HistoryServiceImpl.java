@@ -40,6 +40,7 @@ public class HistoryServiceImpl implements HistoryService {
                     request.getBrandId(),
                     request.getChatbotId(),
                     request.getMessageGroupId(),
+                    request.getMasterId(),
                     request.getStatus(),
                     pageable
             );
@@ -63,6 +64,10 @@ public class HistoryServiceImpl implements HistoryService {
         // 메시지그룹ID로 검색
         else if (request.getMessageGroupId() != null) {
             page = historyRepository.findByMessageGroupId(request.getMessageGroupId(), pageable);
+        }
+        // 마스터ID로 검색
+        else if (request.getMasterId() != null) {
+            page = historyRepository.findByMasterId(request.getMasterId(), pageable);
         }
         // 상태로 검색
         else if (request.getStatus() != null) {
@@ -91,6 +96,7 @@ public class HistoryServiceImpl implements HistoryService {
                 request.getBrandId() != null &&
                 request.getChatbotId() != null &&
                 request.getMessageGroupId() != null &&
+                request.getMasterId() != null &&
                 request.getStatus() != null;
     }
 
@@ -100,6 +106,7 @@ public class HistoryServiceImpl implements HistoryService {
                 request.getBrandId() == null &&
                 request.getChatbotId() == null &&
                 request.getMessageGroupId() == null &&
+                request.getMasterId() == null &&
                 request.getStatus() == null;
     }
 
@@ -133,6 +140,7 @@ public class HistoryServiceImpl implements HistoryService {
                .templateId(entity.getTemplateId())
                .chatbotId(entity.getChatbotId())
                .content(entity.getContent())
+               .masterId(entity.getMasterId())
                .status(entity.getStatus())
                .resultCode(entity.getResultCode())
                .resultMessage(entity.getResultMessage())

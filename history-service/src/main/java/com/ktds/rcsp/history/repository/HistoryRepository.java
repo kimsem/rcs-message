@@ -23,6 +23,9 @@ public interface HistoryRepository extends MongoRepository<MessageHistory, Strin
     @Query("{ 'messageGroupId': ?0 }")
     Page<MessageHistory> findByMessageGroupId(String messageGroupId, Pageable pageable);
 
+    @Query("{ 'masterId': ?0 }")
+    Page<MessageHistory> findByMasterId(String masterId, Pageable pageable);
+
     @Query("{ 'status': ?0 }")
     Page<MessageHistory> findByStatus(String status, Pageable pageable);
 
@@ -31,7 +34,7 @@ public interface HistoryRepository extends MongoRepository<MessageHistory, Strin
             "{ 'brandId': ?2 }, " +
             "{ 'chatbotId': ?3 }, " +
             "{ 'messageGroupId': ?4 }, " +
-            "{ 'status': ?5 } " +
+            "{ 'status': ?6 } " +
             "] }")
     Page<MessageHistory> findBySearchCriteria(
             LocalDateTime startDate,
@@ -39,7 +42,9 @@ public interface HistoryRepository extends MongoRepository<MessageHistory, Strin
             String brandId,
             String chatbotId,
             String messageGroupId,
+            String masterId,
             String status,
             Pageable pageable
     );
+
 }
