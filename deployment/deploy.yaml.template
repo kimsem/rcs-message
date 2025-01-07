@@ -207,6 +207,10 @@ kind: Deployment
 metadata:
   name: ${userid}-rcs-history
   namespace: ${app_namespace}
+  annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/path: "/actuator/prometheus"
+          prometheus.io/port: "**8083**"
 spec:
   replicas: 1
   selector:
