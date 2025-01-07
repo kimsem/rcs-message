@@ -16,6 +16,8 @@ on:
 env:
   RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
   LOCATION: ${{ vars.LOCATION }}
+  USERID: ${{ github.event.inputs.USERID || 'dg4us' }}
+
 
 jobs:
   build:
@@ -84,13 +86,13 @@ jobs:
       - name: Login to Azure Container Registry
         uses: azure/docker-login@v1
         with:
-          login-server: ${{ github.event.inputs.USERID }}cr.azurecr.io
+          login-server: ${{ env.USERID }}cr.azurecr.io
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
       - name: Build and Push Container Images
         env:
-          IMAGE_REG: ${{ github.event.inputs.USERID }}cr.azurecr.io
+          IMAGE_REG: ${{ env.USERID }}cr.azurecr.io
           IMAGE_ORG: rcs
           IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
         run: |
@@ -138,7 +140,7 @@ jobs:
         uses: azure/aks-set-context@v3
         with:
           resource-group: ${{ env.RESOURCE_GROUP }}
-          cluster-name: ${{ github.event.inputs.USERID }}-aks
+          cluster-name: ${{ env.USERID }}-aks
 
       - name: Create Namespaces and Secrets
         env:
@@ -148,7 +150,7 @@ jobs:
           # Az CLI로 AKS 자격증명 갱신
           az aks get-credentials \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --name ${{ github.event.inputs.USERID }}-aks \
+            --name ${{ env.USERID }}-aks \
             --overwrite-existing
             
           kubectl create namespace ${DB_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
@@ -165,11 +167,11 @@ jobs:
       - name: Generate and Apply Deployment
         env:
           IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
-          IMAGE_REG: ${{ github.event.inputs.USERID }}cr.azurecr.io
+          IMAGE_REG: ${{ env.USERID }}cr.azurecr.io
           IMAGE_ORG: rcs
           DB_NAMESPACE: rcs-mvp
           APP_NAMESPACE: rcs-mvp
-          USERID: ${{ github.event.inputs.USERID }}
+          USERID: ${{ env.USERID }}
         run: |
           # Set variables for envsubst
           export auth_image_path="${IMAGE_REG}/${IMAGE_ORG}/rcs-auth:${IMAGE_TAG}"
@@ -196,10 +198,10 @@ jobs:
           for service in auth message history basedata; do
             echo "Waiting for ${service} service..."
             kubectl wait --for=condition=ready pod \
-              -l "app=${service}-service,userid=${{ github.event.inputs.USERID }}" \
+              -l "app=${service}-service,userid=${{ env.USERID }}" \
               -n ${APP_NAMESPACE} --timeout=600s || true
               
-            IP=$(kubectl get svc ${{ github.event.inputs.USERID }}-rcs-${service} \
+            IP=$(kubectl get svc ${{ env.USERID }}-rcs-${service} \
               -n ${APP_NAMESPACE} \
               -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
             echo "${service} Service IP: ${IP}"
