@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,57 +41,22 @@ public class HistoryServiceImpl implements HistoryService {
         historySearchTotalCounter.increment();
 
         try {
-            Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
-            Page<MessageHistory> page;
+            validateDateRange(request);
 
             Timer.Sample dbSample = Timer.start();
             dbConnectionCounter.increment();
 
-            // 검색 조건이 모두 있는 경우
-            if (hasAllSearchCriteria(request)) {
-                page = historyRepository.findBySearchCriteria(
-                        request.getStartDate(),
-                        request.getEndDate(),
-                        request.getBrandId(),
-                        request.getChatbotId(),
-                        request.getMessageGroupId(),
-                        request.getMasterId(),
-                        request.getStatus(),
-                        pageable
-                );
-            }
-            // 날짜 범위만 있는 경우
-            else if (hasDateRangeOnly(request)) {
-                page = historyRepository.findByCreatedAtBetween(
-                        request.getStartDate(),
-                        request.getEndDate(),
-                        pageable
-                );
-            }
-            // 브랜드ID로 검색
-            else if (request.getBrandId() != null) {
-                page = historyRepository.findByBrandId(request.getBrandId(), pageable);
-            }
-            // 발신번호ID로 검색
-            else if (request.getChatbotId() != null) {
-                page = historyRepository.findByChatbotId(request.getChatbotId(), pageable);
-            }
-            // 메시지그룹ID로 검색
-            else if (request.getMessageGroupId() != null) {
-                page = historyRepository.findByMessageGroupId(request.getMessageGroupId(), pageable);
-            }
-            // 마스터ID로 검색
-            else if (request.getMasterId() != null) {
-                page = historyRepository.findByMasterId(request.getMasterId(), pageable);
-            }
-            // 상태로 검색
-            else if (request.getStatus() != null) {
-                page = historyRepository.findByStatus(request.getStatus(), pageable);
-            }
-            // 검색 조건이 없는 경우
-            else {
-                page = historyRepository.findAll(pageable);
-            }
+            // MongoDB는 ISODate 형식으로 저장되므로 LocalDateTime을 그대로 사용
+            Page<MessageHistory> page = historyRepository.findBySearchCriteria(
+                    request.getMasterId(),
+                    request.getStartDate(),
+                    request.getEndDate(),
+                    request.getBrandId(),
+                    request.getChatbotId(),
+                    request.getMessageGroupId(),
+                    request.getStatus() != null ? request.getStatus().toString() : null,
+                    PageRequest.of(request.getPage(), request.getSize())
+            );
 
             dbSample.stop(dbQueryTimer);
 
@@ -159,25 +125,15 @@ public class HistoryServiceImpl implements HistoryService {
         }
     }
 
-    // Helper methods remain unchanged
-    private boolean hasAllSearchCriteria(MessageHistorySearchRequest request) {
-        return request.getStartDate() != null &&
-                request.getEndDate() != null &&
-                request.getBrandId() != null &&
-                request.getChatbotId() != null &&
-                request.getMessageGroupId() != null &&
-                request.getMasterId() != null &&
-                request.getStatus() != null;
-    }
-
-    private boolean hasDateRangeOnly(MessageHistorySearchRequest request) {
-        return request.getStartDate() != null &&
-                request.getEndDate() != null &&
-                request.getBrandId() == null &&
-                request.getChatbotId() == null &&
-                request.getMessageGroupId() == null &&
-                request.getMasterId() == null &&
-                request.getStatus() == null;
+    private void validateDateRange(MessageHistorySearchRequest request) {
+        if (request.getStartDate() != null && request.getEndDate() != null) {
+            if (request.getStartDate().isAfter(request.getEndDate())) {
+                throw new IllegalArgumentException("Start date must be before or equal to end date");
+            }
+            if (ChronoUnit.DAYS.between(request.getStartDate(), request.getEndDate()) > 365) {
+                throw new IllegalArgumentException("Date range cannot exceed 1 year");
+            }
+        }
     }
 
     private MessageHistoryResponse convertToResponse(MessageHistory entity) {
