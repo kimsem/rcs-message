@@ -53,41 +53,35 @@ public interface HistoryRepository extends MongoRepository<MessageHistory, Strin
     *   기존의 개별 메서드들을 하나의 통합 메서드로 대체
     *   $or 연산자를 사용하여 각 조건이 null일 경우 무시되도록 처리
     *   MongoDB의 필드명 규칙에 맞게 수정 (camelCase를 snake_case로)
-    *   @Param 어노테이션을 사용하여 명확한 파라미터 매핑
     * */
-    @Query("{ " +
-            "'master_id': :#{#masterId}, " +
-            "$and: [ " +
-            "  { $or: [ " +
-            "    { 'created_at': { $gte: :#{#startDate}, $lte: :#{#endDate} } }, " +
-            "    { $and: [ { :#{#startDate} : null }, { :#{#endDate} : null } ] } " +
-            "  ] }, " +
-            "  { $or: [ " +
-            "    { 'brand_id': :#{#brandId} }, " +
-            "    { :#{#brandId} : null } " +
-            "  ] }, " +
-            "  { $or: [ " +
-            "    { 'chatbot_id': :#{#chatbotId} }, " +
-            "    { :#{#chatbotId} : null } " +
-            "  ] }, " +
-            "  { $or: [ " +
-            "    { 'message_group_id': :#{#messageGroupId} }, " +
-            "    { :#{#messageGroupId} : null } " +
-            "  ] }, " +
-            "  { $or: [ " +
-            "    { 'status': :#{#status} }, " +
-            "    { :#{#status} : null } " +
-            "  ] } " +
-            "] }")
+    @Query("{" +
+            "'master_id': ?0, " +  // masterId는 필수
+            "'created_at': { $gte: ?1, $lte: ?2 }, " +  // 날짜 범위도 필수
+            "$and: [" +
+            "  { $or: [" +
+            "    { 'brand_id': ?3 }," +
+            "    { $expr: { $eq: [?3, null] } }" +  // brandId가 null이면 조건 무시
+            "  ]}," +
+            "  { $or: [" +
+            "    { 'chatbot_id': ?4 }," +
+            "    { $expr: { $eq: [?4, null] } }" +  // chatbotId가 null이면 조건 무시
+            "  ]}," +
+            "  { $or: [" +
+            "    { 'message_group_id': ?5 }," +
+            "    { $expr: { $eq: [?5, null] } }" +  // messageGroupId가 null이면 조건 무시
+            "  ]}," +
+            "  { $or: [" +
+            "    { 'status': ?6 }," +
+            "    { $expr: { $eq: [?6, null] } }" +  // status가 null이면 조건 무시
+            "  ]}" +
+            "]}")
     Page<MessageHistory> findBySearchCriteria(
-            @Param("masterId") String masterId,
-            @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate,
-            @Param("brandId") String brandId,
-            @Param("chatbotId") String chatbotId,
-            @Param("messageGroupId") String messageGroupId,
-            @Param("status") String status,
-            Pageable pageable
-    );
-
+            String masterId,          // 필수
+            LocalDateTime startDate,  // 필수
+            LocalDateTime endDate,    // 필수
+            String brandId,           // 선택
+            String chatbotId,         // 선택
+            String messageGroupId,    // 선택
+            String status,            // 선택
+            Pageable pageable);
 }
