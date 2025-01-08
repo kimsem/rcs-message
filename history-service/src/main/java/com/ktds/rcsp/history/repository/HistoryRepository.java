@@ -55,39 +55,27 @@ public interface HistoryRepository extends MongoRepository<MessageHistory, Strin
     *   MongoDB의 필드명 규칙에 맞게 수정 (camelCase를 snake_case로)
     * */
     @Query(value = "{" +
-            "'master_id': ?0, " +
-            "'created_at': { $gte: ?1, $lte: ?2 }, " +
+            "'master_id': ?0, " +  // masterId는 필수
+            "'created_at': { $gte: ?1, $lte: ?2 }, " +  // 날짜 범위도 필수
             "$and: [" +
-            "  { $or: [ " +
-            "    { $and: [ " +
-            "      { $exists: { $eq: [?3, true] } }, " +
-            "      { 'brand_id': ?3 } " +
-            "    ]}, " +
-            "    { $exists: { $eq: [?3, false] } } " +
-            "  ]}, " +
-            "  { $or: [ " +
-            "    { $and: [ " +
-            "      { $exists: { $eq: [?4, true] } }, " +
-            "      { 'chatbot_id': ?4 } " +
-            "    ]}, " +
-            "    { $exists: { $eq: [?4, false] } } " +
-            "  ]}, " +
-            "  { $or: [ " +
-            "    { $and: [ " +
-            "      { $exists: { $eq: [?5, true] } }, " +
-            "      { 'message_group_id': ?5 } " +
-            "    ]}, " +
-            "    { $exists: { $eq: [?5, false] } } " +
-            "  ]}, " +
-            "  { $or: [ " +
-            "    { $and: [ " +
-            "      { $exists: { $eq: [?6, true] } }, " +
-            "      { 'status': ?6 } " +
-            "    ]}, " +
-            "    { $exists: { $eq: [?6, false] } } " +
-            "  ]} " +
+            "  { $or: [" +
+            "    { 'brand_id': ?3 }," +
+            "    { $expr: { $eq: [?3, null] } }" +  // brandId가 null이면 조건 무시
+            "  ]}," +
+            "  { $or: [" +
+            "    { 'chatbot_id': ?4 }," +
+            "    { $expr: { $eq: [?4, null] } }" +  // chatbotId가 null이면 조건 무시
+            "  ]}," +
+            "  { $or: [" +
+            "    { 'message_group_id': ?5 }," +
+            "    { $expr: { $eq: [?5, null] } }" +  // messageGroupId가 null이면 조건 무시
+            "  ]}," +
+            "  { $or: [" +
+            "    { 'status': ?6 }," +
+            "    { $expr: { $eq: [?6, null] } }" +  // status가 null이면 조건 무시
+            "  ]}" +
             "]}",
-            sort = "{ 'created_at': -1 }")  // -1은 DESC를 의미
+            sort = "{'created_at': -1}")
     Page<MessageHistory> findBySearchCriteria(
             String masterId,          // 필수
             LocalDateTime startDate,  // 필수
