@@ -378,6 +378,10 @@ kind: Service
 metadata:
   name: ${userid}-rcs-message
   namespace: ${app_namespace}
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/actuator/prometheus"
+    prometheus.io/port: "8082"
 spec:
   selector:
     app: message-service

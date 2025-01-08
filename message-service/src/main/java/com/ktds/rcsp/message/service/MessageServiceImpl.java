@@ -12,6 +12,8 @@ import com.ktds.rcsp.message.infra.EncryptionService;
 import com.ktds.rcsp.message.repository.MessageGroupRepository;
 import com.ktds.rcsp.message.repository.MessageRepository;
 import com.ktds.rcsp.message.repository.RecipientRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,33 +36,46 @@ public class MessageServiceImpl implements MessageService {
    private final RecipientService recipientService;
    private final EncryptionService encryptionService;
    private final MessageProcessor messageProcessor;
+   private final Timer uploadTimer;
+   private final Counter uploadTotalCounter;
+   private final Timer messageSendTimer;
+   private final Counter messageSendTotalCounter;
 
    @Override
    public MessageSendResponse sendMessage(MessageSendRequest request) {
-       // messageGroup update
-       MessageGroup messageGroup = MessageGroup.builder()
-               .messageGroupId(request.getMessageGroupId())
-               .masterId(request.getMasterId())
-               .brandId(request.getBrandId())
-               .templateId(request.getTemplateId())
-               .chatbotId(request.getChatbotId())
-               .status(MessageGroupStatus.READY)
-               .build();
+       Timer.Sample sample = Timer.start();
+       messageSendTotalCounter.increment(); // 전체 발송 요청 수 증가
 
-       messageGroupRepository.save(messageGroup);
+       try {
+           // messageGroup update
+           MessageGroup messageGroup = MessageGroup.builder()
+                   .messageGroupId(request.getMessageGroupId())
+                   .masterId(request.getMasterId())
+                   .brandId(request.getBrandId())
+                   .templateId(request.getTemplateId())
+                   .chatbotId(request.getChatbotId())
+                   .status(MessageGroupStatus.READY)
+                   .build();
 
-       List<Recipient> recipients = recipientRepository.findByMessageGroup_MessageGroupId(request.getMessageGroupId());
+           messageGroupRepository.save(messageGroup);
 
-       if (recipients.isEmpty()) {
-           throw new BusinessException(ErrorCode.NO_RECIPIENTS);
+           List<Recipient> recipients = recipientRepository.findByMessageGroup_MessageGroupId(request.getMessageGroupId());
+
+           if (recipients.isEmpty()) {
+               throw new BusinessException(ErrorCode.NO_RECIPIENTS);
+           }
+
+           messageProcessor.processMessagesAsync(request, recipients, messageGroup);
+
+           sample.stop(messageSendTimer);
+           return MessageSendResponse.builder()
+                   .messageGroupId(request.getMessageGroupId())
+                   .status("SUCCESS")
+                   .build();
+       } catch (Exception e) {
+           sample.stop(messageSendTimer);
+           throw e;
        }
-
-       messageProcessor.processMessagesAsync(request, recipients, messageGroup);
-
-       return MessageSendResponse.builder()
-               .messageGroupId(request.getMessageGroupId())
-               .status("SUCCESS")
-               .build();
    }
 
 
@@ -68,6 +83,9 @@ public class MessageServiceImpl implements MessageService {
    @Override
    @Transactional
    public void uploadRecipients(String messageGroupId, String masterId, MultipartFile file) {
+       Timer.Sample sample = Timer.start();
+       uploadTotalCounter.increment();
+
        try {
            int totalCount = recipientService.getTotalCount(file);
 
@@ -82,7 +100,10 @@ public class MessageServiceImpl implements MessageService {
            messageGroupRepository.save(messageGroup);
 
            recipientService.processRecipientFile(messageGroupId, file);
+
+           sample.stop(uploadTimer);
        } catch (Exception e) {
+           sample.stop(uploadTimer);
            log.error("Failed to upload recipients", e);
            throw new RuntimeException("Failed to upload recipients", e);
        }
