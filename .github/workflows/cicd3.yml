@@ -1,16 +1,16 @@
 name: RCS Application CI/CD III
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'auth-service/**'
-      - 'message-service/**'
-      - 'history-service/**'
-      - 'basedata-service/**'
-      - 'gateway-service/**'
-      - 'common/**'
-      - 'deployment/**'
+  #push:
+  #  branches: [ main ]
+  #  paths:
+  #    - 'auth-service/**'
+  #    - 'message-service/**'
+  #    - 'history-service/**'
+  #    - 'basedata-service/**'
+  #    - 'gateway-service/**'
+  #    - 'common/**'
+  #    - 'deployment/**'
   workflow_dispatch:
     inputs:
       USERID:
