@@ -10,6 +10,8 @@ import com.ktds.rcsp.message.infra.EncryptionService;
 import com.ktds.rcsp.message.infra.EventHubMessagePublisher;
 import com.ktds.rcsp.message.repository.MessageGroupRepository;
 import com.ktds.rcsp.message.repository.RecipientRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Timer;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,10 +58,15 @@ public class RecipientServiceImpl implements RecipientService {
     private final PlatformTransactionManager transactionManager;
     private static final int BATCH_SIZE = 5000;
     private final JdbcTemplate jdbcTemplate;
+    private final Timer encryptionTimer;
+    private final Counter encryptionTotalCounter;
 
     @Async
     @Override
     public void processRecipientFile(String messageGroupId, MultipartFile file) {
+        Timer.Sample sample = Timer.start();
+        encryptionTotalCounter.increment();
+
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
             CSVParser csvParser = CSVFormat.Builder.create()
@@ -90,8 +97,9 @@ public class RecipientServiceImpl implements RecipientService {
             if (!eventBatch.isEmpty()) {
                 eventPublisher.publishUploadEvent(eventBatch);
             }
-
+            sample.stop(encryptionTimer);
         } catch (Exception e) {
+            sample.stop(encryptionTimer);
             log.error("Error processing recipient file", e);
             throw new RuntimeException("Failed to process recipient file", e);
         }
