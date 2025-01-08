@@ -31,7 +31,7 @@ public class EventHubMessagePublisher {
     /**
      * 수신자 업로드 이벤트를 발행합니다.
      *
-     * @param event 발행할 수신자 업로드 이벤트
+     * @param events 발행할 수신자 업로드 이벤트
      * @throws RuntimeException 이벤트 발행 실패 시
      */
     public void publishUploadEvent(List<RecipientUploadEvent> events) {
