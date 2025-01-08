@@ -7,10 +7,14 @@ spring:
     password: ${MESSAGE_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
+      # 메트릭 활성화
+      register-mbeans: true
+      # 풀 이름 설정
+      pool-name: message-hikari-pool
       maximum-pool-size: 100  # 최대 풀 크기
       minimum-idle: 10       # 최소 유휴 연결 수
       idle-timeout: 30000    # 유휴 연결 타임아웃 (밀리초)
-      max-lifetime: 300000
+      max-lifetime: 300000   # 5분
       connection-timeout: 30000  # 커넥션 획득 대기 시간 (밀리초)
       keepalive-time: 120000      # 2분
       validation-timeout: 5000    # 5초
