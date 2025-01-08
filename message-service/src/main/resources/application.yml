@@ -10,7 +10,11 @@ spring:
       maximum-pool-size: 100  # 최대 풀 크기
       minimum-idle: 10       # 최소 유휴 연결 수
       idle-timeout: 30000    # 유휴 연결 타임아웃 (밀리초)
+      max-lifetime: 300000
       connection-timeout: 30000  # 커넥션 획득 대기 시간 (밀리초)
+      keepalive-time: 120000      # 2분
+      validation-timeout: 5000    # 5초
+      leak-detection-threshold: 60000  # 1분
   jpa:
     hibernate:
       ddl-auto: update
