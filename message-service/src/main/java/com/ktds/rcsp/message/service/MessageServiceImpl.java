@@ -115,11 +115,18 @@ public class MessageServiceImpl implements MessageService {
        Message message = messageRepository.findById(event.getMessageId())
                .orElseThrow(() -> new RuntimeException("Message not found"));
        messageRepository.delete(message); // EventHub에서 결과 적재 받으면 발송DB에서 삭제
+       if(message.getMessageGroup().getStatus() != MessageGroupStatus.COMPLETED) {
+           MessageGroup messageGroup = message.getMessageGroup();
+           messageGroup.updateStatus();
+           messageGroupRepository.save(messageGroup);
+       }
    }
+   
 
    @Override
    @Transactional(readOnly = true)
    public UploadProgressResponse getUploadProgress(String messageGroupId) {
+       Integer totalCount = getTotalCountByMessageGroupId(messageGroupId);
 
        List<Object[]> statusCountList = recipientRepository.countByMessageGroup_MessageGroupIdAndStatusGroup(messageGroupId);
        Map<ProcessingStatus, Long> statusCountMap = statusCountList.stream()
@@ -128,7 +135,6 @@ public class MessageServiceImpl implements MessageService {
                        row -> (Long) row[1] // 두 번째 값은 카운트
                ));
        // 각 상태별 count 가져오기
-       Integer totalCount = messageGroupRepository.getTotalCountByMessageGroupId(messageGroupId);
        long successCount = statusCountMap.getOrDefault(ProcessingStatus.COMPLETED, 0L);
        long failCount = statusCountMap.getOrDefault(ProcessingStatus.FAILED, 0L);
 
@@ -140,6 +146,10 @@ public class MessageServiceImpl implements MessageService {
                .status(totalCount == (successCount + failCount) ? "COMPLETED" : "PROCESSING")
                .build();
    }
+
+    private Integer getTotalCountByMessageGroupId(String messageGroupId) {
+        return messageGroupRepository.getTotalCountByMessageGroupId(messageGroupId);
+    }
 
     @Override
     public void processMessageResultEvent(List<MessageSendEvent> events) {

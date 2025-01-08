@@ -52,4 +52,8 @@ public class MessageGroup {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    public void updateStatus() {
+        this.status = MessageGroupStatus.COMPLETED;
+    }
 }
