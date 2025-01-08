@@ -11,6 +11,7 @@ import com.ktds.rcsp.message.dto.MessageSendRequest;
 import com.ktds.rcsp.message.infra.EncryptionService;
 import com.ktds.rcsp.message.infra.EventHubMessagePublisher;
 import com.ktds.rcsp.message.repository.MessageGroupRepository;
+import com.ktds.rcsp.message.repository.RecipientRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -29,6 +30,7 @@ public class MessageProcessor {
     private final EncryptionService encryptionService;
     private final EventHubMessagePublisher eventPublisher;
     private final MessageGroupRepository messageGroupRepository;
+    private final RecipientRepository recipientRepository;
     private static final int BATCH_SIZE = 1000;
 
     @Async
@@ -61,6 +63,7 @@ public class MessageProcessor {
                     .collect(Collectors.toList());
 
             eventPublisher.publishSendEvent(sendEventsBatch);
+            recipientRepository.deleteAllInBatch(batchRecipients);
         }
     }
 

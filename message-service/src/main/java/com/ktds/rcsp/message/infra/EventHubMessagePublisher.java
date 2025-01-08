@@ -50,7 +50,7 @@ public class EventHubMessagePublisher {
         try {
             String eventData = objectMapper.writeValueAsString(events);
             EventData eventDataObj = new EventData(eventData.getBytes());
-            messageSendProducerClient.send(Collections.singletonList(eventDataObj));
+//            messageSendProducerClient.send(Collections.singletonList(eventDataObj));
             log.info("Published {} recipient send events", events.size());
         } catch (Exception e) {
             log.error("Error publishing message send event", e);

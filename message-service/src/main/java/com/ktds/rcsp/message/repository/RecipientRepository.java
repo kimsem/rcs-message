@@ -1,5 +1,6 @@
 package com.ktds.rcsp.message.repository;
 
+import com.ktds.rcsp.message.domain.MessageGroup;
 import com.ktds.rcsp.message.domain.Recipient;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
