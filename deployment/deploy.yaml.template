@@ -131,7 +131,7 @@ spec:
       volumes:
           - name: timezone
             hostPath:
-            path: /usr/share/zoneinfo/Asia/Japan
+            path: /usr/share/zoneinfo/Asia/Seoul
             type: File
 
 ---
