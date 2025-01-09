@@ -172,6 +172,10 @@ spec:
       - name: basedata-service
         image: ${basedata_image_path}
         imagePullPolicy: Always
+		volumeMounts:
+         - name: timezone
+           mountPath: /etc/localtime
+           readOnly: true
         env:
         - name: JAVA_OPTS
           valueFrom:
@@ -216,6 +220,10 @@ spec:
           limits:
             cpu: 500m
             memory: 1024Mi
+	  volumes:
+          - name: timezone
+            hostPath:
+              path: /usr/share/zoneinfo/Asia/Seoul
 
 ---
 # BASEDATA Service
@@ -256,6 +264,10 @@ spec:
       - name: history-service
         image: ${history_image_path}
         imagePullPolicy: Always
+        volumeMounts:
+        - name: timezone
+          mountPath: /etc/localtime
+          readOnly: true
         env:
         - name: JAVA_OPTS
           valueFrom:
@@ -305,6 +317,10 @@ spec:
           limits:
             cpu: 500m
             memory: 1024Mi
+      volumes:
+       - name: timezone
+         hostPath:
+           path: /usr/share/zoneinfo/Asia/Seoul
 
 ---
 # History Service
@@ -334,7 +350,7 @@ metadata:
   name: ${userid}-rcs-message
   namespace: ${app_namespace}
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: message-service
@@ -349,6 +365,10 @@ spec:
       - name: message-service
         image: ${message_image_path}
         imagePullPolicy: Always
+        volumeMounts:
+        - name: timezone
+          mountPath: /etc/localtime
+          readOnly: true
         env:
         - name: JAVA_OPTS
           valueFrom:
@@ -398,6 +418,10 @@ spec:
           limits:
             cpu: 500m
             memory: 2048Mi
+      volumes:
+        - name: timezone
+          hostPath:
+             path: /usr/share/zoneinfo/Asia/Seoul
 
 ---
 # Message Service
