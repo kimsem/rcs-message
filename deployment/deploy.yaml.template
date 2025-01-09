@@ -81,6 +81,11 @@ spec:
         image: ${auth_image_path}
         imagePullPolicy: Always
         env:
+        - name: JAVA_OPTS
+          valueFrom:
+                configMapKeyRef:
+                  name: jvm-settings
+                  key: AUTH_JAVA_OPTS
         - name: AUTH_DB_URL
           valueFrom:
             configMapKeyRef:
@@ -135,7 +140,7 @@ spec:
     - port: 8080
       targetPort: 8081
   type: LoadBalancer
-  
+
 ---
 # BASEDATA Service Deployment
 apiVersion: apps/v1
@@ -160,6 +165,11 @@ spec:
         image: ${basedata_image_path}
         imagePullPolicy: Always
         env:
+        - name: JAVA_OPTS
+          valueFrom:
+            configMapKeyRef:
+                name: jvm-settings
+                key: BASEDATA_JAVA_OPTS
         - name: BASEDATA_DB_URL
           valueFrom:
             configMapKeyRef:
@@ -214,7 +224,7 @@ spec:
     - port: 8080
       targetPort: 8084
   type: LoadBalancer
-  
+
 ---
 # HISTORY Service Deployment
 apiVersion: apps/v1
@@ -239,6 +249,11 @@ spec:
         image: ${history_image_path}
         imagePullPolicy: Always
         env:
+        - name: JAVA_OPTS
+          valueFrom:
+                configMapKeyRef:
+                  name: jvm-settings
+                  key: HISTORY_JAVA_OPTS
         - name: MONGODB_URI
           valueFrom:
             configMapKeyRef:
@@ -327,6 +342,11 @@ spec:
         image: ${message_image_path}
         imagePullPolicy: Always
         env:
+        - name: JAVA_OPTS
+          valueFrom:
+             configMapKeyRef:
+                  name: jvm-settings
+                  key: MESSAGE_JAVA_OPTS
         - name: MESSAGE_DB_URL
           valueFrom:
             configMapKeyRef:
