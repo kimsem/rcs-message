@@ -104,7 +104,7 @@ jobs:
             # Create Dockerfile content
             echo "FROM eclipse-temurin:17-jdk-alpine" > "Dockerfile.${service}"
             echo "COPY ${service}-service/build/libs/${service}-service-*.jar app.jar" >> "Dockerfile.${service}"
-            echo 'ENTRYPOINT ["java","$JAVA_OPTS -jar","/app.jar"]' >> "Dockerfile.${service}"
+            echo 'ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app.jar"]' >> "Dockerfile.${service}"
                         
             # Build Docker image
             docker build -f "Dockerfile.${service}" \
