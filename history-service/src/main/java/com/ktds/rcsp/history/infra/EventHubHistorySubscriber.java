@@ -32,7 +32,7 @@ public class EventHubHistorySubscriber {
     @PostConstruct
     public void subscribe() throws InterruptedException {
         sendMessageSubscription();
-//        resultMessageSubscription();
+        resultMessageSubscription();
     }
 
     private void sendMessageSubscription() throws InterruptedException {
