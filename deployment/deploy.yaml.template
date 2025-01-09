@@ -131,8 +131,7 @@ spec:
       volumes:
           - name: timezone
             hostPath:
-            path: /usr/share/zoneinfo/Asia/Seoul
-            type: File
+              path: /usr/share/zoneinfo/Asia/Seoul
 
 ---
 # Auth Service
