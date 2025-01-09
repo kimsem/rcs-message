@@ -8,26 +8,26 @@ data:
   # Application Settings
   APP_NAME: "rcs"
   SERVER_PORT: "8080"
-  
+
   # Database Connections
   # MESSAGE_DB_URL: "jdbc:postgresql://10.0.215.208:5432/rcs-message-db"
   MESSAGE_DB_URL: "jdbc:postgresql://20.41.121.201:5432/rcs-message-db"
   MESSAGE_DB_USERNAME: "dg4s"
   MESSAGE_DB_PASSWORD: "p@ssw0rd!@"
-  
+
   BASEDATA_DB_URL: "jdbc:postgresql://10.0.43.236:5432/rcs-base-db"
   BASEDATA_DB_USERNAME: "dg4s"
   BASEDATA_DB_PASSWORD: "p@ssw0rd!@"
-  
+
   AUTH_DB_URL: "jdbc:postgresql://10.0.195.172:5432/rcs-auth-db"
   AUTH_DB_USERNAME: "dg4s"
   AUTH_DB_PASSWORD: "p@ssw0rd!@"
-  
+
   MONGODB_URI: "dg4us-mongo.mongocluster.cosmos.azure.com"
   MONGODB_DB_USERNAME: "dg4sadm"
   MONGODB_DB_PASSWORD: "p%40ssw0rd!%40"
   MONGODB_DATABASE: "rcs-history-db"
-  
+
   # JPA Settings
   JPA_DDL_AUTO: "update"
   JPA_SHOW_SQL: "true"
@@ -40,7 +40,7 @@ data:
   EVENTHUB_MESSAGE_SEND_REQ: "rcs-message-send"
   # 메시지 수신결과 응답 큐
   EVENTHUB_MESSAGE_RESULT_RES: "rcs-message-result"
-  # 미사용 
+  # 미사용
   ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef"
 
 ---
@@ -172,10 +172,10 @@ spec:
       - name: basedata-service
         image: ${basedata_image_path}
         imagePullPolicy: Always
-		volumeMounts:
-         - name: timezone
-           mountPath: /etc/localtime
-           readOnly: true
+        volumeMounts:
+        - name: timezone
+          mountPath: /etc/localtime
+          readOnly: true
         env:
         - name: JAVA_OPTS
           valueFrom:
@@ -220,10 +220,10 @@ spec:
           limits:
             cpu: 500m
             memory: 1024Mi
-	  volumes:
-          - name: timezone
-            hostPath:
-              path: /usr/share/zoneinfo/Asia/Seoul
+      volumes:
+         - name: timezone
+           hostPath:
+            path: /usr/share/zoneinfo/Asia/Seoul
 
 ---
 # BASEDATA Service
@@ -399,7 +399,7 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: ${userid}-rcs-config
-              key: EVENTHUB_CONNECTION_STRING 
+              key: EVENTHUB_CONNECTION_STRING
         - name: azure.eventhub.connection-string
           valueFrom:
             configMapKeyRef:
