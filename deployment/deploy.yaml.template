@@ -1,4 +1,4 @@
-# ConfigMap for Application Settings
+# ConfigMap for Application Settings.
 apiVersion: v1
 kind: ConfigMap
 metadata:
