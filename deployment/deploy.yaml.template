@@ -350,7 +350,7 @@ metadata:
   name: ${userid}-rcs-message
   namespace: ${app_namespace}
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: message-service
