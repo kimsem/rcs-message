@@ -313,10 +313,10 @@ spec:
         resources:
           requests:
             cpu: 250m
-            memory: 512Mi
+            memory: 1024Mi
           limits:
             cpu: 500m
-            memory: 1024Mi
+            memory: 4096Mi
       volumes:
        - name: timezone
          hostPath:
@@ -413,11 +413,11 @@ spec:
           value: "rcs-message-result"
         resources:
           requests:
-            cpu: 250m
-            memory: 512Mi
+            cpu: 1000m
+            memory: 1024Mi
           limits:
-            cpu: 500m
-            memory: 2048Mi
+            cpu: 2000m
+            memory: 4096Mi
       volumes:
         - name: timezone
           hostPath:
