@@ -33,6 +33,7 @@ public class EventHubHistorySubscriber {
     public void subscribe() throws InterruptedException {
         sendMessageSubscription();
         resultMessageSubscription();
+
     }
 
     private void sendMessageSubscription() throws InterruptedException {
